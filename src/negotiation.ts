@@ -1,112 +1,112 @@
 import OpenAI from "openai";
 import { BuyerAgent } from "./agents/buyer.js";
 import { SellerAgent } from "./agents/seller.js";
-import type {
-  NegotiationRequest,
-  NegotiationSession,
-  NegotiationOutcome,
-  AgentMessage,
-} from "./types.js";
-
-const MAX_TURNS = 10;
-
-const PHALA_API_BASE = "https://api.redpill.ai/v1";
-const DEFAULT_MODEL = "deepseek/deepseek-chat-v3-0324";
+import { saveMessage } from "./db/messages.js";
+import { completeInstance, failInstance } from "./db/instances.js";
+import { config } from "./config.js";
+import type { Instance, ProgressEvent, NegotiationOutcome } from "./types.js";
 
 export async function* runNegotiation(
-  session: NegotiationSession,
-  apiKey: string
-): AsyncGenerator<AgentMessage | NegotiationOutcome> {
+  instance: Instance
+): AsyncGenerator<ProgressEvent> {
   const client = new OpenAI({
-    apiKey,
-    baseURL: PHALA_API_BASE,
+    apiKey: config.phalaApiKey,
+    baseURL: config.phalaApiBase,
   });
 
-  const model = session.request.model || DEFAULT_MODEL;
+  const model = instance.model;
+  const maxTurns = instance.max_turns;
+
+  // Validate instance has required data
+  if (!instance.seller_info || !instance.seller_proof) {
+    yield { type: "error", data: { message: "Instance missing seller data" } };
+    failInstance(instance.id, "Missing seller data");
+    return;
+  }
 
   const buyerAgent = new BuyerAgent(
     client,
     model,
-    session.request.buyer_requirement,
-    session.request.max_payment,
-    session.request.buyer_prompt
+    instance.buyer_requirement,
+    instance.max_payment,
+    instance.buyer_prompt || undefined
   );
 
   const sellerAgent = new SellerAgent(
     client,
     model,
-    session.request.seller_info,
-    session.request.seller_proof,
-    session.request.seller_prompt
+    instance.seller_info,
+    instance.seller_proof,
+    instance.seller_prompt || undefined
   );
 
   let turn = 0;
 
-  // Seller opens
-  turn++;
-  let sellerContent = "";
-  const sellerOpening = await sellerAgent.openingStatement((token) => {
-    sellerContent += token;
-  });
-
-  const sellerMsg: AgentMessage = {
-    turn,
-    agent: "seller",
-    content: sellerOpening,
-    timestamp: new Date(),
-  };
-  session.messages.push(sellerMsg);
-  yield sellerMsg;
-
-  // Negotiation loop
-  let lastSellerMessage = sellerOpening;
-
-  while (turn < MAX_TURNS) {
-    // Buyer responds
+  try {
+    // Seller opens
     turn++;
-    const { content: buyerContent, outcome } = await buyerAgent.respond(
-      lastSellerMessage
-    );
+    yield { type: "progress", data: { turn, phase: "seller_presenting" } };
 
-    const buyerMsg: AgentMessage = {
-      turn,
-      agent: "buyer",
-      content: buyerContent,
-      timestamp: new Date(),
-    };
-    session.messages.push(buyerMsg);
-    yield buyerMsg;
+    const sellerOpening = await sellerAgent.openingStatement();
+    saveMessage(instance.id, turn, "seller", sellerOpening);
 
-    // Check if buyer made a decision
-    if (outcome) {
-      session.status = "completed";
-      session.outcome = outcome;
-      yield outcome;
-      return;
+    // Negotiation loop
+    let lastSellerMessage = sellerOpening;
+
+    while (turn < maxTurns) {
+      // Buyer responds
+      turn++;
+      yield { type: "progress", data: { turn, phase: "buyer_evaluating" } };
+
+      const { content: buyerContent, outcome } = await buyerAgent.respond(
+        lastSellerMessage
+      );
+      saveMessage(instance.id, turn, "buyer", buyerContent);
+
+      // Check if buyer made a decision
+      if (outcome) {
+        completeInstance(
+          instance.id,
+          outcome.decision,
+          outcome.price || null,
+          outcome.reasoning
+        );
+
+        yield {
+          type: "complete",
+          data: {
+            outcome: outcome.decision,
+            price: outcome.price,
+            reasoning: outcome.reasoning,
+          },
+        };
+        return;
+      }
+
+      // Seller responds
+      turn++;
+      yield { type: "progress", data: { turn, phase: "seller_responding" } };
+
+      const sellerResponse = await sellerAgent.respond(buyerContent);
+      saveMessage(instance.id, turn, "seller", sellerResponse);
+
+      lastSellerMessage = sellerResponse;
     }
 
-    // Seller responds
-    turn++;
-    const sellerResponse = await sellerAgent.respond(buyerContent);
+    // Max turns reached without decision - force rejection
+    const timeoutReasoning = "Maximum negotiation turns reached without agreement";
+    completeInstance(instance.id, "REJECT", null, timeoutReasoning);
 
-    const sellerResponseMsg: AgentMessage = {
-      turn,
-      agent: "seller",
-      content: sellerResponse,
-      timestamp: new Date(),
+    yield {
+      type: "complete",
+      data: {
+        outcome: "REJECT",
+        reasoning: timeoutReasoning,
+      },
     };
-    session.messages.push(sellerResponseMsg);
-    yield sellerResponseMsg;
-
-    lastSellerMessage = sellerResponse;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    failInstance(instance.id, message);
+    yield { type: "error", data: { message } };
   }
-
-  // Max turns reached without decision - force rejection
-  const timeoutOutcome: NegotiationOutcome = {
-    decision: "REJECT",
-    reasoning: "Maximum negotiation turns reached without agreement",
-  };
-  session.status = "completed";
-  session.outcome = timeoutOutcome;
-  yield timeoutOutcome;
 }

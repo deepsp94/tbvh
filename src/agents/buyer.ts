@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { AgentMessage, NegotiationOutcome } from "../types.js";
+import type { NegotiationOutcome } from "../types.js";
 
 const DEFAULT_BUYER_PROMPT = `You are a buyer agent evaluating information for purchase in a prediction market context.
 
