@@ -19,3 +19,4 @@ dist/
 *.db-shm
 *.db-wal
 
+DEVELOPMENT_STATUS.md

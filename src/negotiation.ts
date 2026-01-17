@@ -6,8 +6,25 @@ import { completeInstance, failInstance } from "./db/instances.js";
 import { config } from "./config.js";
 import type { Instance, ProgressEvent, NegotiationOutcome } from "./types.js";
 
+class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TimeoutError";
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new TimeoutError(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 export async function* runNegotiation(
-  instance: Instance
+  instance: Instance,
+  abortSignal?: AbortSignal
 ): AsyncGenerator<ProgressEvent> {
   const client = new OpenAI({
     apiKey: config.phalaApiKey,
@@ -41,13 +58,26 @@ export async function* runNegotiation(
   );
 
   let turn = 0;
+  const perTurnTimeout = config.perTurnTimeoutMs;
+
+  // Helper to check abort signal
+  const checkAbort = () => {
+    if (abortSignal?.aborted) {
+      throw new Error("Negotiation aborted");
+    }
+  };
 
   try {
     // Seller opens
     turn++;
+    checkAbort();
     yield { type: "progress", data: { turn, phase: "seller_presenting" } };
 
-    const sellerOpening = await sellerAgent.openingStatement();
+    const sellerOpening = await withTimeout(
+      sellerAgent.openingStatement(),
+      perTurnTimeout,
+      "Seller opening"
+    );
     saveMessage(instance.id, turn, "seller", sellerOpening);
 
     // Negotiation loop
@@ -56,10 +86,13 @@ export async function* runNegotiation(
     while (turn < maxTurns) {
       // Buyer responds
       turn++;
+      checkAbort();
       yield { type: "progress", data: { turn, phase: "buyer_evaluating" } };
 
-      const { content: buyerContent, outcome } = await buyerAgent.respond(
-        lastSellerMessage
+      const { content: buyerContent, outcome } = await withTimeout(
+        buyerAgent.respond(lastSellerMessage),
+        perTurnTimeout,
+        "Buyer response"
       );
       saveMessage(instance.id, turn, "buyer", buyerContent);
 
@@ -85,9 +118,14 @@ export async function* runNegotiation(
 
       // Seller responds
       turn++;
+      checkAbort();
       yield { type: "progress", data: { turn, phase: "seller_responding" } };
 
-      const sellerResponse = await sellerAgent.respond(buyerContent);
+      const sellerResponse = await withTimeout(
+        sellerAgent.respond(buyerContent),
+        perTurnTimeout,
+        "Seller response"
+      );
       saveMessage(instance.id, turn, "seller", sellerResponse);
 
       lastSellerMessage = sellerResponse;

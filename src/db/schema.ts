@@ -57,4 +57,14 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_instance ON messages(instance_id);
+
+-- Daily usage tracking for rate limiting
+CREATE TABLE IF NOT EXISTS daily_usage (
+  address TEXT NOT NULL,
+  date TEXT NOT NULL,
+  negotiations_started INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (address, date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_usage_date ON daily_usage(date);
 `;

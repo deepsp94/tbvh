@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  tbvh:
+    image: deepsp94/tbvh-tee-core:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PHALA_API_KEY=${PHALA_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - SIWE_DOMAIN=${SIWE_DOMAIN}
+      - DB_PATH=/data/tbvh.db
+      - NEGOTIATION_TIMEOUT_MS=${NEGOTIATION_TIMEOUT_MS:-300000}
+      - PER_TURN_TIMEOUT_MS=${PER_TURN_TIMEOUT_MS:-60000}
+      - MAX_NEGOTIATIONS_PER_USER_PER_DAY=${MAX_NEGOTIATIONS_PER_USER_PER_DAY:-10}
+    volumes:
+      - tbvh-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  tbvh-data:

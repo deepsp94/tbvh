@@ -15,4 +15,11 @@ export const config = {
 
   // Negotiation
   maxTurns: 10,
+  negotiationTimeoutMs: parseInt(process.env.NEGOTIATION_TIMEOUT_MS || "300000"), // 5 min default
+  perTurnTimeoutMs: parseInt(process.env.PER_TURN_TIMEOUT_MS || "120000"), // 2 min per agent response
+
+  // Rate limiting
+  maxNegotiationsPerUserPerDay: parseInt(
+    process.env.MAX_NEGOTIATIONS_PER_USER_PER_DAY || "10"
+  ),
 };

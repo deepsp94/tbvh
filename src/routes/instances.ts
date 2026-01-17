@@ -11,7 +11,9 @@ import {
   startInstance,
   deleteInstance,
 } from "../db/instances.js";
+import { getUsageToday, incrementUsage } from "../db/usage.js";
 import { runNegotiation } from "../negotiation.js";
+import { config } from "../config.js";
 import type {
   CreateInstanceInput,
   CommitInstanceInput,
@@ -181,10 +183,26 @@ instanceRoutes.post("/:id/run", requireAuth, async (c) => {
     return c.json({ error: "Instance must be in committed status" }, 400);
   }
 
+  // Rate limiting: check daily negotiation limit
+  const usageToday = getUsageToday(address);
+  if (usageToday >= config.maxNegotiationsPerUserPerDay) {
+    return c.json(
+      {
+        error: "Daily negotiation limit exceeded",
+        limit: config.maxNegotiationsPerUserPerDay,
+        usage: usageToday,
+      },
+      429
+    );
+  }
+
   const updated = startInstance(id, address);
   if (!updated) {
     return c.json({ error: "Failed to start instance" }, 500);
   }
+
+  // Increment usage counter after successful start
+  incrementUsage(address);
 
   return c.json({ id: updated.id, status: updated.status });
 });
@@ -212,8 +230,31 @@ instanceRoutes.get("/:id/stream", requireAuth, async (c) => {
   }
 
   return streamSSE(c, async (stream) => {
+    // Set up overall timeout
+    const abortController = new AbortController();
+    const overallTimeout = setTimeout(() => {
+      abortController.abort();
+    }, config.negotiationTimeoutMs);
+
+    // Set up heartbeat (every 15 seconds)
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await stream.writeSSE({
+          event: "heartbeat",
+          data: JSON.stringify({ timestamp: Date.now() }),
+        });
+      } catch {
+        // Stream closed, ignore
+      }
+    }, 15000);
+
+    const cleanup = () => {
+      clearTimeout(overallTimeout);
+      clearInterval(heartbeatInterval);
+    };
+
     try {
-      for await (const event of runNegotiation(instance)) {
+      for await (const event of runNegotiation(instance, abortController.signal)) {
         if (event.type === "progress") {
           await stream.writeSSE({
             event: "progress",
@@ -232,11 +273,18 @@ instanceRoutes.get("/:id/stream", requireAuth, async (c) => {
         }
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      const isTimeout = abortController.signal.aborted;
+      const message = isTimeout
+        ? `Negotiation timed out after ${config.negotiationTimeoutMs / 1000} seconds`
+        : error instanceof Error
+          ? error.message
+          : "Unknown error";
       await stream.writeSSE({
         event: "error",
-        data: JSON.stringify({ message }),
+        data: JSON.stringify({ message, timeout: isTimeout }),
       });
+    } finally {
+      cleanup();
     }
   });
 });
