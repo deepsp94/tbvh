@@ -1,54 +1,27 @@
-import { useEffect, useState } from "react";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { Header } from "./Header";
-import { useAuth } from "./auth/AuthProvider";
+import HomePage from "./pages/HomePage";
+import CreateInstancePage from "./pages/CreateInstancePage";
 
-export default function App() {
-  const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading");
-  const { isAuthenticated, address } = useAuth();
-
-  useEffect(() => {
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then((data) => {
-        setStatus(data.status === "ok" ? "connected" : "disconnected");
-      })
-      .catch(() => {
-        setStatus("disconnected");
-      });
-  }, []);
-
+function Layout() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <Header />
-      <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 73px)" }}>
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold">TBVH</h1>
-          <p className="text-zinc-400">To Be Verifiably Honest</p>
-          <div className="flex items-center justify-center gap-2">
-            <span
-              className={`inline-block h-2 w-2 rounded-full ${
-                status === "connected"
-                  ? "bg-green-500"
-                  : status === "disconnected"
-                    ? "bg-red-500"
-                    : "bg-zinc-500 animate-pulse"
-              }`}
-            />
-            <span className="text-sm text-zinc-400">
-              {status === "loading"
-                ? "Connecting..."
-                : status === "connected"
-                  ? "Backend connected"
-                  : "Backend disconnected"}
-            </span>
-          </div>
-          {isAuthenticated && (
-            <p className="text-sm text-green-400">
-              Signed in as {address?.slice(0, 6)}...{address?.slice(-4)}
-            </p>
-          )}
-        </div>
-      </div>
+      <Outlet />
     </div>
   );
+}
+
+const router = createBrowserRouter([
+  {
+    element: <Layout />,
+    children: [
+      { path: "/", element: <HomePage /> },
+      { path: "/create", element: <CreateInstancePage /> },
+    ],
+  },
+]);
+
+export default function App() {
+  return <RouterProvider router={router} />;
 }
