@@ -1,0 +1,20 @@
+node_modules/
+dist/
+*.db
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Build
+web/dist/
+
+docs/
