@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { Header } from "./Header";
+import { useAuth } from "./auth/AuthProvider";
 
 export default function App() {
   const [status, setStatus] = useState<"loading" | "connected" | "disconnected">("loading");
+  const { isAuthenticated, address } = useAuth();
 
   useEffect(() => {
     fetch("/api/health")
@@ -15,27 +18,35 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold">TBVH</h1>
-        <p className="text-zinc-400">To Be Verifiably Honest</p>
-        <div className="flex items-center justify-center gap-2">
-          <span
-            className={`inline-block h-2 w-2 rounded-full ${
-              status === "connected"
-                ? "bg-green-500"
-                : status === "disconnected"
-                  ? "bg-red-500"
-                  : "bg-zinc-500 animate-pulse"
-            }`}
-          />
-          <span className="text-sm text-zinc-400">
-            {status === "loading"
-              ? "Connecting..."
-              : status === "connected"
-                ? "Backend connected"
-                : "Backend disconnected"}
-          </span>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <Header />
+      <div className="flex items-center justify-center" style={{ minHeight: "calc(100vh - 73px)" }}>
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold">TBVH</h1>
+          <p className="text-zinc-400">To Be Verifiably Honest</p>
+          <div className="flex items-center justify-center gap-2">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                status === "connected"
+                  ? "bg-green-500"
+                  : status === "disconnected"
+                    ? "bg-red-500"
+                    : "bg-zinc-500 animate-pulse"
+              }`}
+            />
+            <span className="text-sm text-zinc-400">
+              {status === "loading"
+                ? "Connecting..."
+                : status === "connected"
+                  ? "Backend connected"
+                  : "Backend disconnected"}
+            </span>
+          </div>
+          {isAuthenticated && (
+            <p className="text-sm text-green-400">
+              Signed in as {address?.slice(0, 6)}...{address?.slice(-4)}
+            </p>
+          )}
         </div>
       </div>
     </div>
