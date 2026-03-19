@@ -4,6 +4,8 @@ export const config = {
   jwtSecret: getJwtSecret(),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "24h",
   siweDomain: process.env.SIWE_DOMAIN || "localhost:5173",
+  defaultModel: process.env.DEFAULT_MODEL || "deepseek/deepseek-chat-v3-0324",
+  maxTurns: Number(process.env.MAX_TURNS) || 10,
 };
 
 function getJwtSecret(): string {
