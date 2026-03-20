@@ -4,6 +4,8 @@ import type {
   CommitInstanceInput,
   PublicInstanceView,
   MyInstancesResponse,
+  TeeInfo,
+  TeeVerification,
 } from "@shared/types.js";
 
 const BASE = "/api";
@@ -80,4 +82,14 @@ export async function runNegotiation(id: string): Promise<{ message: string }> {
     headers: authHeaders(),
   });
   return handleResponse<{ message: string }>(res);
+}
+
+export async function getTeeInfo(): Promise<TeeInfo> {
+  const res = await fetch(`${BASE}/tee/info`);
+  return handleResponse<TeeInfo>(res);
+}
+
+export async function getTeeVerification(id: string): Promise<TeeVerification> {
+  const res = await fetch(`${BASE}/tee/verify/${id}`);
+  return handleResponse<TeeVerification>(res);
 }

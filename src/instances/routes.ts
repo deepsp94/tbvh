@@ -37,6 +37,9 @@ function toPublicView(instance: Instance): PublicInstanceView {
     outcome: instance.outcome,
     final_price: instance.final_price,
     outcome_reasoning: instance.outcome_reasoning,
+    outcome_signature: instance.outcome_signature,
+    outcome_signer: instance.outcome_signer,
+    tee_attested: instance.tee_attested,
   };
 }
 

@@ -9,6 +9,10 @@ export const config = {
   phalaApiKey: process.env.PHALA_API_KEY ?? "",
   redpillBaseUrl: process.env.REDPILL_BASE_URL ?? "https://api.red-pill.ai/v1",
   maxDailyTokens: Number(process.env.MAX_DAILY_TOKENS) || 1_000_000,
+  teeMode: process.env.TEE_MODE || "dev",
+  teeDevSeed: process.env.TEE_DEV_SEED || "tbvh-dev-seed-do-not-use-in-production",
+  chainId: Number(process.env.CHAIN_ID) || 84532,
+  escrowContract: process.env.ESCROW_CONTRACT || "0x0000000000000000000000000000000000000000",
 };
 
 function getJwtSecret(): string {

@@ -282,7 +282,12 @@ export default function InstanceDetailPage() {
         {outcome && (
           <div className="border-t border-zinc-800 pt-6">
             <h2 className="text-sm font-semibold text-zinc-200 mb-3">Outcome</h2>
-            <OutcomeDisplay outcome={outcome} />
+            <OutcomeDisplay
+              outcome={outcome}
+              instanceId={id}
+              teeAttested={instance.tee_attested}
+              outcomeSignature={instance.outcome_signature}
+            />
           </div>
         )}
       </div>

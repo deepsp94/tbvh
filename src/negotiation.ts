@@ -1,13 +1,31 @@
 import { getMessages, insertMessage } from "./db/messages.js";
 import { insertEvent } from "./db/events.js";
 import { trackUsage, checkDailyLimit } from "./db/usage.js";
-import { setCompleted, setFailed } from "./db/instances.js";
+import { setCompleted, setFailed, setSignature } from "./db/instances.js";
 import { callSellerAgent } from "./agents/seller.js";
 import { callBuyerAgent } from "./agents/buyer.js";
+import { signOutcome } from "./tee/signing.js";
+import { isTeeEnvironment } from "./tee/index.js";
 import type { Instance, ProgressEvent } from "@shared/types.js";
 
 function emit(instanceId: string, event: Omit<ProgressEvent, "timestamp">): void {
   insertEvent(instanceId, event);
+}
+
+async function completeAndSign(
+  id: string,
+  outcome: "ACCEPT" | "REJECT",
+  finalPrice: number | null,
+  reasoning: string
+): Promise<void> {
+  const completed = setCompleted(id, outcome, finalPrice, reasoning);
+  if (!completed) return;
+  try {
+    const { signature, signerAddress } = await signOutcome(completed);
+    setSignature(id, signature, signerAddress, isTeeEnvironment());
+  } catch (err) {
+    console.error("TEE signing failed for", id, ":", err);
+  }
 }
 
 export async function runNegotiation(instance: Instance): Promise<void> {
@@ -57,7 +75,7 @@ export async function runNegotiation(instance: Instance): Promise<void> {
       // --- Decision ---
       if (buyerResp.decision === "ACCEPT") {
         const finalPrice = Math.min(buyerResp.offer_price, sellerResp.asking_price);
-        setCompleted(instance.id, "ACCEPT", finalPrice, `Accepted at turn ${turn}, price: ${finalPrice} USDC`);
+        await completeAndSign(instance.id, "ACCEPT", finalPrice, `Accepted at turn ${turn}, price: ${finalPrice} USDC`);
         emit(instance.id, {
           type: "outcome",
           outcome: {
@@ -70,7 +88,7 @@ export async function runNegotiation(instance: Instance): Promise<void> {
       }
 
       if (buyerResp.decision === "REJECT") {
-        setCompleted(instance.id, "REJECT", null, `Rejected at turn ${turn}`);
+        await completeAndSign(instance.id, "REJECT", null, `Rejected at turn ${turn}`);
         emit(instance.id, {
           type: "outcome",
           outcome: {
@@ -84,7 +102,7 @@ export async function runNegotiation(instance: Instance): Promise<void> {
     }
 
     // Max turns exhausted
-    setCompleted(instance.id, "REJECT", null, "Max turns reached without agreement");
+    await completeAndSign(instance.id, "REJECT", null, "Max turns reached without agreement");
     emit(instance.id, {
       type: "outcome",
       outcome: {

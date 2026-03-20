@@ -74,6 +74,9 @@ export interface PublicInstanceView {
   outcome: "ACCEPT" | "REJECT" | null;
   final_price: number | null;
   outcome_reasoning: string | null;
+  outcome_signature: string | null;
+  outcome_signer: string | null;
+  tee_attested: number;
 }
 
 export interface ParticipantInstanceView {
@@ -128,4 +131,34 @@ export interface ProgressEvent {
   outcome?: NegotiationOutcome;
   error?: string;
   timestamp: string;
+}
+
+export interface EIP712Domain {
+  name: string;
+  version: string;
+  chainId: number;
+  verifyingContract: string;
+}
+
+export interface TeeInfo {
+  enabled: boolean;
+  signerAddress: string;
+  chainId: number;
+  contractAddress: string;
+  domain: EIP712Domain;
+}
+
+export interface TeeVerification {
+  instanceId: string;
+  buyer: string;
+  seller: string;
+  outcome: "ACCEPT" | "REJECT";
+  finalPrice: string;
+  timestamp: number;
+  signature: string;
+  signerAddress: string;
+  teeAttested: boolean;
+  domain: EIP712Domain;
+  types: Record<string, Array<{ name: string; type: string }>>;
+  value: Record<string, unknown>;
 }

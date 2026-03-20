@@ -117,6 +117,22 @@ export function setCompleted(
   return getInstanceById(id);
 }
 
+export function setSignature(
+  id: string,
+  signature: string,
+  signerAddress: string,
+  teeAttested: boolean
+): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE instances
+    SET outcome_signature = ?, outcome_signer = ?,
+        outcome_signed_at = ?, tee_attested = ?
+    WHERE id = ?
+  `).run(signature, signerAddress, now, teeAttested ? 1 : 0, id);
+}
+
 export function setFailed(id: string, reason: string): Instance | undefined {
   const db = getDb();
   const now = new Date().toISOString();
