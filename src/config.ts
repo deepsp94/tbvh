@@ -6,6 +6,9 @@ export const config = {
   siweDomain: process.env.SIWE_DOMAIN || "localhost:5173",
   defaultModel: process.env.DEFAULT_MODEL || "deepseek/deepseek-chat-v3-0324",
   maxTurns: Number(process.env.MAX_TURNS) || 10,
+  phalaApiKey: process.env.PHALA_API_KEY ?? "",
+  redpillBaseUrl: process.env.REDPILL_BASE_URL ?? "https://api.red-pill.ai/v1",
+  maxDailyTokens: Number(process.env.MAX_DAILY_TOKENS) || 1_000_000,
 };
 
 function getJwtSecret(): string {

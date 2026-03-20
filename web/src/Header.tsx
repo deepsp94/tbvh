@@ -1,5 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
+import { Link } from "react-router-dom";
 import { useAuth } from "./auth/AuthProvider";
 
 export function Header() {
@@ -8,8 +9,18 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-      <h1 className="text-xl font-bold">TBVH</h1>
+      <Link to="/" className="text-xl font-bold hover:text-zinc-300 transition-colors">
+        TBVH
+      </Link>
       <div className="flex items-center gap-3">
+        {isAuthenticated && (
+          <Link
+            to="/mine"
+            className="px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
+            My Instances
+          </Link>
+        )}
         <ConnectButton />
         {isConnected && !isAuthenticated && (
           <button

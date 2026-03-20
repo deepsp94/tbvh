@@ -47,5 +47,34 @@ function runMigrations(db: Database.Database) {
       started_at TEXT,
       completed_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      instance_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      turn INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_messages_instance ON messages(instance_id, turn);
+
+    CREATE TABLE IF NOT EXISTS negotiation_events (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT NOT NULL UNIQUE,
+      instance_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      turn INTEGER,
+      content TEXT,
+      metadata TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_events_instance ON negotiation_events(instance_id, seq);
+
+    CREATE TABLE IF NOT EXISTS daily_usage (
+      date TEXT NOT NULL,
+      model TEXT NOT NULL,
+      total_tokens INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (date, model)
+    );
   `);
 }

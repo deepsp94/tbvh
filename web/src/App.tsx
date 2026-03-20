@@ -2,6 +2,8 @@ import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import HomePage from "./pages/HomePage";
 import CreateInstancePage from "./pages/CreateInstancePage";
+import InstanceDetailPage from "./pages/InstanceDetailPage";
+import MyInstancesPage from "./pages/MyInstancesPage";
 
 function Layout() {
   return (
@@ -18,6 +20,8 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/create", element: <CreateInstancePage /> },
+      { path: "/instances/:id", element: <InstanceDetailPage /> },
+      { path: "/mine", element: <MyInstancesPage /> },
     ],
   },
 ]);

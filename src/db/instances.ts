@@ -47,3 +47,83 @@ export function getInstanceById(id: string): Instance | undefined {
     .prepare("SELECT * FROM instances WHERE id = ?")
     .get(id) as Instance | undefined;
 }
+
+export function commitInstance(
+  id: string,
+  sellerAddress: string,
+  input: import("@shared/types.js").CommitInstanceInput
+): Instance | undefined {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE instances
+    SET status = 'committed', seller_address = ?, seller_info = ?,
+        seller_proof = ?, seller_prompt = ?, committed_at = ?
+    WHERE id = ?
+  `).run(
+    sellerAddress.toLowerCase(),
+    input.seller_info,
+    input.seller_proof,
+    input.seller_prompt ?? null,
+    now,
+    id
+  );
+  return getInstanceById(id);
+}
+
+export function deleteInstance(id: string): void {
+  const db = getDb();
+  db.prepare("DELETE FROM instances WHERE id = ?").run(id);
+}
+
+export function getInstancesByBuyer(address: string): Instance[] {
+  const db = getDb();
+  return db
+    .prepare("SELECT * FROM instances WHERE buyer_address = ? ORDER BY created_at DESC")
+    .all(address) as Instance[];
+}
+
+export function getInstancesBySeller(address: string): Instance[] {
+  const db = getDb();
+  return db
+    .prepare("SELECT * FROM instances WHERE seller_address = ? ORDER BY created_at DESC")
+    .all(address) as Instance[];
+}
+
+export function setRunning(id: string): { success: boolean; instance?: Instance } {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const result = db
+    .prepare("UPDATE instances SET status = 'running', started_at = ? WHERE id = ? AND status = 'committed'")
+    .run(now, id);
+  if (result.changes === 0) return { success: false };
+  return { success: true, instance: getInstanceById(id) };
+}
+
+export function setCompleted(
+  id: string,
+  outcome: "ACCEPT" | "REJECT",
+  finalPrice: number | null,
+  reasoning: string
+): Instance | undefined {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE instances
+    SET status = 'completed', outcome = ?, final_price = ?,
+        outcome_reasoning = ?, completed_at = ?
+    WHERE id = ?
+  `).run(outcome, finalPrice, reasoning, now, id);
+  return getInstanceById(id);
+}
+
+export function setFailed(id: string, reason: string): Instance | undefined {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE instances
+    SET status = 'failed', outcome_reasoning = ?, completed_at = ?
+    WHERE id = ?
+  `).run(reason, now, id);
+  return getInstanceById(id);
+}

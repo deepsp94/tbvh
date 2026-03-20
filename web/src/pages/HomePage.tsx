@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../components/ui/Button";
 import { Card, CardHeader, CardContent } from "../components/ui/Card";
+import { Badge } from "../components/ui/Badge";
 import { listInstances } from "../lib/api";
-import type { InstanceStatus } from "@shared/types.js";
+import type { InstanceStatus, PublicInstanceView } from "@shared/types.js";
 
 const STATUS_FILTERS: Array<{ label: string; value: string | undefined }> = [
   { label: "All", value: undefined },
@@ -15,21 +16,16 @@ const STATUS_FILTERS: Array<{ label: string; value: string | undefined }> = [
   { label: "Failed", value: "failed" },
 ];
 
-const STATUS_COLORS: Record<InstanceStatus, string> = {
-  created: "bg-amber-400",
-  committed: "bg-blue-400",
-  running: "bg-indigo-400",
-  completed: "bg-green-400",
-  failed: "bg-red-400",
+const STATUS_VARIANTS: Record<InstanceStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
+  created: "amber",
+  committed: "blue",
+  running: "blue",
+  completed: "green",
+  failed: "red",
 };
 
 function StatusBadge({ status }: { status: InstanceStatus }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
-      <span className={`inline-block h-1.5 w-1.5 rounded-full ${STATUS_COLORS[status]}`} />
-      {status}
-    </span>
-  );
+  return <Badge variant={STATUS_VARIANTS[status]}>{status}</Badge>;
 }
 
 export default function HomePage() {
@@ -70,27 +66,29 @@ export default function HomePage() {
         <p className="text-zinc-500 text-sm">No instances yet</p>
       ) : (
         <div className="grid gap-3">
-          {instances.map((instance) => (
-            <Card key={instance.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <StatusBadge status={instance.status} />
-                  <span className="text-xs text-zinc-500">
-                    {new Date(instance.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-zinc-200 mb-2">
-                  {instance.buyer_requirement.length > 120
-                    ? instance.buyer_requirement.slice(0, 120) + "…"
-                    : instance.buyer_requirement}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  Max payment: <span className="text-zinc-300">{instance.max_payment} USDC</span>
-                </p>
-              </CardContent>
-            </Card>
+          {instances.map((instance: PublicInstanceView) => (
+            <Link key={instance.id} to={`/instances/${instance.id}`} className="block">
+              <Card className="hover:border-zinc-600 transition-colors cursor-pointer">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <StatusBadge status={instance.status} />
+                    <span className="text-xs text-zinc-500">
+                      {new Date(instance.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-zinc-200 mb-2">
+                    {instance.buyer_requirement.length > 120
+                      ? instance.buyer_requirement.slice(0, 120) + "…"
+                      : instance.buyer_requirement}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Max payment: <span className="text-zinc-300">{instance.max_payment} USDC</span>
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
