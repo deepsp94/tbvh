@@ -14,7 +14,7 @@ authRoutes.get("/nonce", (c) => {
     return c.json({ error: "address query parameter required" }, 400);
   }
 
-  const nonce = uuidv4();
+  const nonce = uuidv4().replace(/-/g, "");
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   const db = getDb();
