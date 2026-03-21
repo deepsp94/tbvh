@@ -33,10 +33,11 @@ export function EscrowPanel({ instanceId, instance, outcome, address }: Props) {
     }
   }, [instanceId, instance.outcome_signature, instance.status]);
 
-  // Refetch on-chain state after successful tx
+  // Refetch on-chain state after successful tx (delay for chain propagation)
   useEffect(() => {
     if (escrow.isSuccess) {
-      escrow.refetchAll();
+      const timer = setTimeout(() => escrow.refetchAll(), 2000);
+      return () => clearTimeout(timer);
     }
   }, [escrow.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
