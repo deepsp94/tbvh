@@ -105,8 +105,9 @@ export default function InstanceDetailPage() {
     queryKey: ["instance", id],
     queryFn: () => getInstance(id!),
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      if (status === "running" && !isDone) return 3000;
+      const data = query.state.data;
+      if (data?.status === "running" && !isDone) return 3000;
+      if (data?.status === "completed" && !data.outcome_signature) return 2000;
       return false;
     },
     enabled: !!id,
