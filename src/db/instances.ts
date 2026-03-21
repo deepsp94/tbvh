@@ -108,12 +108,22 @@ export function setCompleted(
 ): Instance | undefined {
   const db = getDb();
   const now = new Date().toISOString();
-  db.prepare(`
-    UPDATE instances
-    SET status = 'completed', outcome = ?, final_price = ?,
-        outcome_reasoning = ?, completed_at = ?
-    WHERE id = ?
-  `).run(outcome, finalPrice, reasoning, now, id);
+  if (outcome === "REJECT") {
+    db.prepare(`
+      UPDATE instances
+      SET status = 'completed', outcome = ?, final_price = ?,
+          outcome_reasoning = ?, completed_at = ?,
+          seller_info = NULL, seller_proof = NULL
+      WHERE id = ?
+    `).run(outcome, finalPrice, reasoning, now, id);
+  } else {
+    db.prepare(`
+      UPDATE instances
+      SET status = 'completed', outcome = ?, final_price = ?,
+          outcome_reasoning = ?, completed_at = ?
+      WHERE id = ?
+    `).run(outcome, finalPrice, reasoning, now, id);
+  }
   return getInstanceById(id);
 }
 
@@ -138,7 +148,8 @@ export function setFailed(id: string, reason: string): Instance | undefined {
   const now = new Date().toISOString();
   db.prepare(`
     UPDATE instances
-    SET status = 'failed', outcome_reasoning = ?, completed_at = ?
+    SET status = 'failed', outcome_reasoning = ?, completed_at = ?,
+        seller_info = NULL, seller_proof = NULL
     WHERE id = ?
   `).run(reason, now, id);
   return getInstanceById(id);

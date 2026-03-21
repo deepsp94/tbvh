@@ -5,23 +5,19 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function trackUsage(model: string, tokens: number): void {
+export function recordNegotiation(address: string): void {
   const db = getDb();
   db.prepare(`
-    INSERT INTO daily_usage (date, model, total_tokens)
-    VALUES (?, ?, ?)
-    ON CONFLICT(date, model) DO UPDATE SET total_tokens = total_tokens + excluded.total_tokens
-  `).run(today(), model, tokens);
+    INSERT INTO daily_usage (date, address, negotiations)
+    VALUES (?, ?, 1)
+    ON CONFLICT(date, address) DO UPDATE SET negotiations = negotiations + 1
+  `).run(today(), address);
 }
 
-export function getDailyUsage(model: string): number {
+export function checkNegotiationLimit(address: string): boolean {
   const db = getDb();
   const row = db
-    .prepare("SELECT total_tokens FROM daily_usage WHERE date = ? AND model = ?")
-    .get(today(), model) as { total_tokens: number } | undefined;
-  return row?.total_tokens ?? 0;
-}
-
-export function checkDailyLimit(model: string): boolean {
-  return getDailyUsage(model) < config.maxDailyTokens;
+    .prepare("SELECT negotiations FROM daily_usage WHERE date = ? AND address = ?")
+    .get(today(), address) as { negotiations: number } | undefined;
+  return (row?.negotiations ?? 0) < config.maxNegotiationsPerDay;
 }

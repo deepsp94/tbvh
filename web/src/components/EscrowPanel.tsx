@@ -5,11 +5,11 @@ import { useEscrow } from "../hooks/useEscrow";
 import { getTeeVerification } from "../lib/api";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import type { PublicInstanceView, NegotiationOutcome, TeeVerification } from "@shared/types.js";
+import type { ParticipantInstanceView, NegotiationOutcome, TeeVerification } from "@shared/types.js";
 
 interface Props {
   instanceId: string;
-  instance: PublicInstanceView;
+  instance: ParticipantInstanceView;
   outcome: NegotiationOutcome | null;
   address: string | null;
 }

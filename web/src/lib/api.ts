@@ -3,6 +3,7 @@ import type {
   CreateInstanceInput,
   CommitInstanceInput,
   PublicInstanceView,
+  ParticipantInstanceView,
   MyInstancesResponse,
   TeeInfo,
   TeeVerification,
@@ -32,9 +33,11 @@ export async function listInstances(status?: string): Promise<PublicInstanceView
   return handleResponse<PublicInstanceView[]>(res);
 }
 
-export async function getInstance(id: string): Promise<PublicInstanceView> {
-  const res = await fetch(`${BASE}/instances/${id}`);
-  return handleResponse<PublicInstanceView>(res);
+export async function getInstance(id: string): Promise<ParticipantInstanceView> {
+  const res = await fetch(`${BASE}/instances/${id}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<ParticipantInstanceView>(res);
 }
 
 export async function createInstance(input: CreateInstanceInput): Promise<Instance> {

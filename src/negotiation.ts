@@ -1,6 +1,5 @@
 import { getMessages, insertMessage } from "./db/messages.js";
 import { insertEvent } from "./db/events.js";
-import { trackUsage, checkDailyLimit } from "./db/usage.js";
 import { setCompleted, setFailed, setSignature } from "./db/instances.js";
 import { callSellerAgent } from "./agents/seller.js";
 import { callBuyerAgent } from "./agents/buyer.js";
@@ -31,13 +30,6 @@ async function completeAndSign(
 export async function runNegotiation(instance: Instance): Promise<void> {
   try {
     for (let turn = 1; turn <= instance.max_turns; turn++) {
-      // Check daily token limit
-      if (!checkDailyLimit(instance.model)) {
-        setFailed(instance.id, "Daily token limit reached");
-        emit(instance.id, { type: "error", error: "Daily token limit reached" });
-        return;
-      }
-
       emit(instance.id, { type: "turn_start", turn });
 
       // --- Seller turn ---
@@ -48,7 +40,6 @@ export async function runNegotiation(instance: Instance): Promise<void> {
       }));
 
       const sellerResp = await callSellerAgent(instance, sellerHistory);
-      trackUsage(instance.model, sellerResp.tokens_used);
       insertMessage(instance.id, "seller", sellerResp.message, turn);
       emit(instance.id, {
         type: "seller_message",
@@ -64,7 +55,6 @@ export async function runNegotiation(instance: Instance): Promise<void> {
       }));
 
       const buyerResp = await callBuyerAgent(instance, buyerHistory);
-      trackUsage(instance.model, buyerResp.tokens_used);
       insertMessage(instance.id, "buyer", buyerResp.message, turn);
       emit(instance.id, {
         type: "buyer_message",

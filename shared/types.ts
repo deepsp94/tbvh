@@ -71,12 +71,6 @@ export interface PublicInstanceView {
   seller_address: string | null;
   committed_at: string | null;
   created_at: string;
-  outcome: "ACCEPT" | "REJECT" | null;
-  final_price: number | null;
-  outcome_reasoning: string | null;
-  outcome_signature: string | null;
-  outcome_signer: string | null;
-  tee_attested: number;
 }
 
 export interface ParticipantInstanceView {
@@ -93,6 +87,9 @@ export interface ParticipantInstanceView {
   outcome: "ACCEPT" | "REJECT" | null;
   final_price: number | null;
   outcome_reasoning: string | null;
+  outcome_signature: string | null;
+  outcome_signer: string | null;
+  tee_attested: number;
   created_at: string;
 }
 

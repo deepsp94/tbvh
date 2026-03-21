@@ -72,9 +72,9 @@ function runMigrations(db: Database.Database) {
 
     CREATE TABLE IF NOT EXISTS daily_usage (
       date TEXT NOT NULL,
-      model TEXT NOT NULL,
-      total_tokens INTEGER NOT NULL DEFAULT 0,
-      PRIMARY KEY (date, model)
+      address TEXT NOT NULL,
+      negotiations INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (date, address)
     );
   `);
 }

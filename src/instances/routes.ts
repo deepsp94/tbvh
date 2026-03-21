@@ -11,6 +11,7 @@ import {
   setRunning,
 } from "../db/instances.js";
 import { getEvents, getEventsAfter } from "../db/events.js";
+import { checkNegotiationLimit, recordNegotiation } from "../db/usage.js";
 import { requireAuth, optionalAuth, type Variables } from "../auth/middleware.js";
 import { verifyToken } from "../auth/jwt.js";
 import { runNegotiation } from "../negotiation.js";
@@ -34,16 +35,21 @@ function toPublicView(instance: Instance): PublicInstanceView {
     seller_address: instance.seller_address,
     committed_at: instance.committed_at,
     created_at: instance.created_at,
-    outcome: instance.outcome,
-    final_price: instance.final_price,
-    outcome_reasoning: instance.outcome_reasoning,
-    outcome_signature: instance.outcome_signature,
-    outcome_signer: instance.outcome_signer,
-    tee_attested: instance.tee_attested,
   };
 }
 
-function toParticipantView(instance: Instance): ParticipantInstanceView {
+function toParticipantView(
+  instance: Instance,
+  asRole: "buyer" | "seller"
+): ParticipantInstanceView {
+  // Buyer only sees seller_info when outcome is ACCEPT
+  const sellerInfo =
+    asRole === "seller"
+      ? instance.seller_info
+      : instance.outcome === "ACCEPT"
+        ? instance.seller_info
+        : null;
+
   return {
     id: instance.id,
     status: instance.status,
@@ -51,13 +57,16 @@ function toParticipantView(instance: Instance): ParticipantInstanceView {
     buyer_requirement: instance.buyer_requirement,
     max_payment: instance.max_payment,
     seller_address: instance.seller_address,
-    seller_info: instance.seller_info,
+    seller_info: sellerInfo,
     committed_at: instance.committed_at,
     started_at: instance.started_at,
     completed_at: instance.completed_at,
     outcome: instance.outcome,
     final_price: instance.final_price,
     outcome_reasoning: instance.outcome_reasoning,
+    outcome_signature: instance.outcome_signature,
+    outcome_signer: instance.outcome_signer,
+    tee_attested: instance.tee_attested,
     created_at: instance.created_at,
   };
 }
@@ -69,8 +78,8 @@ function sleep(ms: number): Promise<void> {
 // GET /mine — must be before GET /:id
 instanceRoutes.get("/mine", requireAuth, (c) => {
   const address = c.get("address");
-  const asBuyer = getInstancesByBuyer(address).map(toParticipantView);
-  const asSeller = getInstancesBySeller(address).map(toParticipantView);
+  const asBuyer = getInstancesByBuyer(address).map((i) => toParticipantView(i, "buyer"));
+  const asSeller = getInstancesBySeller(address).map((i) => toParticipantView(i, "seller"));
   return c.json({ as_buyer: asBuyer, as_seller: asSeller });
 });
 
@@ -139,10 +148,16 @@ instanceRoutes.post("/:id/run", requireAuth, async (c) => {
     return c.json({ error: "Only the buyer can start negotiation" }, 403);
   }
 
+  if (!checkNegotiationLimit(address)) {
+    return c.json({ error: "Daily negotiation limit reached" }, 429);
+  }
+
   const result = setRunning(id);
   if (!result.success) {
     return c.json({ error: "Instance must be committed before running" }, 409);
   }
+
+  recordNegotiation(address);
 
   runNegotiation(result.instance!).catch((err) =>
     console.error("Negotiation failed for instance", id, ":", err)
@@ -209,6 +224,14 @@ instanceRoutes.get("/:id", optionalAuth, (c) => {
   const instance = getInstanceById(id);
   if (!instance) {
     return c.json({ error: "Instance not found" }, 404);
+  }
+
+  const address = c.get("address");
+  if (address === instance.buyer_address) {
+    return c.json(toParticipantView(instance, "buyer"));
+  }
+  if (address === instance.seller_address) {
+    return c.json(toParticipantView(instance, "seller"));
   }
   return c.json(toPublicView(instance));
 });
