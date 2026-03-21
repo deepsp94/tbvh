@@ -26,4 +26,8 @@ docs/
 contracts/lib/
 contracts/cache/
 contracts/out/
+contracts/broadcast/
+
+# Vercel
 .vercel
+.env*.local

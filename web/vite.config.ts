@@ -13,6 +13,14 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "../shared"),
     },
   },
+  optimizeDeps: {
+    include: ["ethers", "buffer"],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/ethers/, /node_modules/],
+    },
+  },
   server: {
     proxy: {
       "/api": {
