@@ -9,6 +9,7 @@ import {
 import { useAccount, useSignMessage } from "wagmi";
 import { SiweMessage } from "siwe";
 import type { NonceResponse, VerifyResponse } from "@shared/types";
+import { API_BASE } from "../lib/apiBase";
 
 interface AuthContextValue {
   jwt: string | null;
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 1. Get nonce
     const nonceRes = await fetch(
-      `/api/auth/nonce?address=${walletAddress}`
+      `${API_BASE}/auth/nonce?address=${walletAddress}`
     );
     const { nonce } = (await nonceRes.json()) as NonceResponse;
 
@@ -104,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signature = await signMessageAsync({ message });
 
     // 4. Verify on backend
-    const verifyRes = await fetch("/api/auth/verify", {
+    const verifyRes = await fetch(`${API_BASE}/auth/verify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, signature }),

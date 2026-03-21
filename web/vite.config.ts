@@ -5,6 +5,9 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    __API_BASE__: JSON.stringify(process.env.VITE_API_URL || "/api"),
+  },
   resolve: {
     alias: {
       "@shared": path.resolve(__dirname, "../shared"),

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ProgressEvent } from "@shared/types.js";
+import { API_BASE } from "../lib/apiBase";
 
 interface UseNegotiationStreamResult {
   events: ProgressEvent[];
@@ -20,7 +21,7 @@ export function useNegotiationStream(
   useEffect(() => {
     if (!instanceId || !jwt) return;
 
-    const url = `/api/instances/${instanceId}/stream?token=${encodeURIComponent(jwt)}`;
+    const url = `${API_BASE}/instances/${instanceId}/stream?token=${encodeURIComponent(jwt)}`;
     const es = new EventSource(url);
 
     es.onopen = () => setIsConnected(true);

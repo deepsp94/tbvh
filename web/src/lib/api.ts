@@ -9,7 +9,7 @@ import type {
   TeeVerification,
 } from "@shared/types.js";
 
-const BASE = "/api";
+import { API_BASE as BASE } from "./apiBase";
 
 function authHeaders(): Record<string, string> {
   const jwt = localStorage.getItem("tbvh_jwt");

@@ -26,3 +26,4 @@ docs/
 contracts/lib/
 contracts/cache/
 contracts/out/
+.vercel

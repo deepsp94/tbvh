@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import type { EIP712Domain } from "@shared/types.js";
+import { API_BASE } from "../lib/apiBase";
 
 interface ConfigContextValue {
   chainId: number;
@@ -37,7 +38,7 @@ export function ConfigProvider({
   const [config, setConfig] = useState<ConfigContextValue>(defaults);
 
   useEffect(() => {
-    fetch("/api/tee/info")
+    fetch(`${API_BASE}/tee/info`)
       .then((r) => r.json())
       .then((info) => {
         const c: ConfigContextValue = {
