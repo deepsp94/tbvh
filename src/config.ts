@@ -13,6 +13,7 @@ export const config = {
   teeDevSeed: process.env.TEE_DEV_SEED || "tbvh-dev-seed-do-not-use-in-production",
   chainId: Number(process.env.CHAIN_ID) || 84532,
   escrowContract: process.env.ESCROW_CONTRACT || "0x0000000000000000000000000000000000000000",
+  usdcContract: process.env.USDC_CONTRACT || "0x0000000000000000000000000000000000000000",
 };
 
 function getJwtSecret(): string {

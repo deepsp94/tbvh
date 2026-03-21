@@ -2,6 +2,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
 import { Link } from "react-router-dom";
 import { useAuth } from "./auth/AuthProvider";
+import { UsdcFaucet } from "./components/UsdcFaucet";
 
 export function Header() {
   const { isConnected } = useAccount();
@@ -21,6 +22,7 @@ export function Header() {
             My Instances
           </Link>
         )}
+        <UsdcFaucet />
         <ConnectButton />
         {isConnected && !isAuthenticated && (
           <button

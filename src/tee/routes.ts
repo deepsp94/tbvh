@@ -14,6 +14,7 @@ teeRoutes.get("/info", async (c) => {
     signerAddress: wallet.address,
     chainId: config.chainId,
     contractAddress: config.escrowContract,
+    tokenAddress: config.usdcContract,
     domain: getEip712Domain(),
   });
 });

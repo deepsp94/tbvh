@@ -6,6 +6,7 @@ interface ConfigContextValue {
   signerAddress: string;
   teeEnabled: boolean;
   contractAddress: string;
+  tokenAddress: string;
   domain: EIP712Domain;
   isLoading: boolean;
 }
@@ -15,6 +16,7 @@ const defaults: ConfigContextValue = {
   signerAddress: "",
   teeEnabled: false,
   contractAddress: "0x0000000000000000000000000000000000000000",
+  tokenAddress: "0x0000000000000000000000000000000000000000",
   domain: { name: "TBVH", version: "1", chainId: 84532, verifyingContract: "0x0000000000000000000000000000000000000000" },
   isLoading: true,
 };
@@ -43,6 +45,7 @@ export function ConfigProvider({
           signerAddress: info.signerAddress,
           teeEnabled: info.enabled,
           contractAddress: info.contractAddress,
+          tokenAddress: info.tokenAddress ?? defaults.tokenAddress,
           domain: info.domain,
           isLoading: false,
         };

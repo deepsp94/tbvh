@@ -11,6 +11,7 @@ import { NegotiationProgress } from "../components/NegotiationProgress";
 import { ProgressTimeline } from "../components/ProgressTimeline";
 import { OutcomeDisplay } from "../components/OutcomeDisplay";
 import { useNegotiationStream } from "../hooks/useNegotiationStream";
+import { EscrowPanel } from "../components/EscrowPanel";
 import { getInstance, commitInstance, cancelInstance, runNegotiation } from "../lib/api";
 import type { InstanceStatus, CommitInstanceInput, NegotiationOutcome } from "@shared/types.js";
 
@@ -287,6 +288,19 @@ export default function InstanceDetailPage() {
               instanceId={id}
               teeAttested={instance.tee_attested}
               outcomeSignature={instance.outcome_signature}
+            />
+          </div>
+        )}
+
+        {/* Escrow */}
+        {isAuthenticated && instance.status !== "created" && (
+          <div className="border-t border-zinc-800 pt-6">
+            <h2 className="text-sm font-semibold text-zinc-200 mb-3">Escrow</h2>
+            <EscrowPanel
+              instanceId={id!}
+              instance={instance}
+              outcome={outcome}
+              address={address}
             />
           </div>
         )}

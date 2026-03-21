@@ -20,3 +20,8 @@ dist/
 web/dist/
 
 docs/
+
+# Contracts
+contracts/lib/
+contracts/cache/
+contracts/out/

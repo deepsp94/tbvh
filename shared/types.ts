@@ -145,6 +145,7 @@ export interface TeeInfo {
   signerAddress: string;
   chainId: number;
   contractAddress: string;
+  tokenAddress: string;
   domain: EIP712Domain;
 }
 
