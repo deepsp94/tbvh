@@ -18,6 +18,7 @@ dist/
 
 # Build
 web/dist/
+*.tsbuildinfo
 
 docs/
 
