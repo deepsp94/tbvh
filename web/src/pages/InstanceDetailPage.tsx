@@ -8,7 +8,7 @@ import { Textarea } from "../components/ui/Textarea";
 import { Label } from "../components/ui/Label";
 import { Badge } from "../components/ui/Badge";
 import { NegotiationCard } from "../components/NegotiationCard";
-import { useInstanceStream } from "../hooks/useNegotiationStream";
+import { useInstanceStream, useNegotiationStream } from "../hooks/useNegotiationStream";
 import {
   getInstance,
   listNegotiations,
@@ -166,17 +166,30 @@ export default function InstanceDetailPage() {
   });
 
   const isBuyer = address && instance && address === instance.buyer_address;
+  const isSeller = !isBuyer && address && negotiations.some((n) => n.seller_address === address);
 
-  // Only connect stream when there are running negotiations
+  // Buyer: instance-level stream (all negotiations)
   const hasRunning = negotiations.some(
     (n) => "status" in n && (n.status === "running" || n.status === "committed")
   );
-  const { events, isDone: streamDone } = useInstanceStream(
+  const { events: buyerEvents, isDone: buyerStreamDone } = useInstanceStream(
     isBuyer && hasRunning ? id! : null,
     jwt
   );
 
-  // When stream closes (negotiations reached terminal state), refresh immediately
+  // Seller: negotiation-level stream (their running negotiation)
+  const sellerRunningNeg = isSeller
+    ? negotiations.find((n) => n.seller_address === address && "status" in n && n.status === "running")
+    : null;
+  const { events: sellerEvents, isDone: sellerStreamDone } = useNegotiationStream(
+    sellerRunningNeg?.id ?? null,
+    jwt
+  );
+
+  const events = isBuyer ? buyerEvents : sellerEvents;
+  const streamDone = isBuyer ? buyerStreamDone : sellerStreamDone;
+
+  // When stream closes, refresh immediately
   useEffect(() => {
     if (streamDone) {
       queryClient.invalidateQueries({ queryKey: ["negotiations", id] });
