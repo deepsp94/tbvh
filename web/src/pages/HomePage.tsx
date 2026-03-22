@@ -29,6 +29,7 @@ export default function HomePage() {
   const { data: instances = [], isLoading } = useQuery({
     queryKey: ["instances", activeStatus],
     queryFn: () => listInstances(activeStatus),
+    refetchInterval: 10000,
   });
 
   return (

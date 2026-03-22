@@ -89,6 +89,7 @@ export default function MyInstancesPage() {
     queryKey: ["myInstances"],
     queryFn: getMyInstances,
     enabled: isAuthenticated,
+    refetchInterval: 10000,
   });
 
   if (!isAuthenticated) {

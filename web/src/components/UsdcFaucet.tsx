@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { formatUnits, parseUnits } from "viem";
 import { useConfig } from "../config/ConfigProvider";
@@ -19,12 +20,15 @@ export function UsdcFaucet() {
   const { writeContract, data: txHash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
-  if (!isConnected || !address || tokenAddress === zeroAddr) return null;
+  // Refetch balance after mint with delay for chain propagation
+  useEffect(() => {
+    if (isSuccess) {
+      const timer = setTimeout(() => refetch(), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Refetch after mint
-  if (isSuccess) {
-    refetch();
-  }
+  if (!isConnected || !address || tokenAddress === zeroAddr) return null;
 
   const formatted = balance != null ? formatUnits(balance as bigint, 6) : "—";
 

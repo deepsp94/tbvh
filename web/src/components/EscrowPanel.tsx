@@ -1,12 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { formatUnits, parseUnits } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 import { useConfig } from "../config/ConfigProvider";
 import { useEscrow } from "../hooks/useEscrow";
 import { getTeeVerification } from "../lib/api";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
 import type { BuyerNegotiationView, TeeVerification } from "@shared/types.js";
-import { useState } from "react";
 
 interface Props {
   negotiationId: string;
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSeller, onAcceptReady }: Props) {
+  const queryClient = useQueryClient();
   const { contractAddress, tokenAddress } = useConfig();
   const escrow = useEscrow(
     negotiationId,
@@ -34,7 +35,10 @@ export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSe
 
   useEffect(() => {
     if (escrow.isSuccess) {
-      const timer = setTimeout(() => escrow.refetchAll(), 2000);
+      const timer = setTimeout(() => {
+        escrow.refetchAll();
+        queryClient.invalidateQueries({ queryKey: ["negotiations", negotiation.instance_id] });
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [escrow.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -155,6 +155,7 @@ export default function InstanceDetailPage() {
     queryKey: ["instance", id],
     queryFn: () => getInstance(id!),
     enabled: !!id,
+    refetchInterval: 10000,
   });
 
   const { data: negotiations = [], refetch: refetchNegotiations } = useQuery({
@@ -170,10 +171,17 @@ export default function InstanceDetailPage() {
   const hasRunning = negotiations.some(
     (n) => "status" in n && (n.status === "running" || n.status === "committed")
   );
-  const { events } = useInstanceStream(
+  const { events, isDone: streamDone } = useInstanceStream(
     isBuyer && hasRunning ? id! : null,
     jwt
   );
+
+  // When stream closes (negotiations reached terminal state), refresh immediately
+  useEffect(() => {
+    if (streamDone) {
+      queryClient.invalidateQueries({ queryKey: ["negotiations", id] });
+    }
+  }, [streamDone, id, queryClient]);
 
   // Determine role for each negotiation card
   function getRole(n: BuyerNegotiationView | SellerNegotiationView | PublicNegotiationView): "buyer" | "seller" | "public" {
