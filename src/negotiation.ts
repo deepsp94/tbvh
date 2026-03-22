@@ -48,7 +48,7 @@ export async function runNegotiation(negotiation: Negotiation): Promise<void> {
         content: m.content,
       }));
 
-      const buyerResp = await callBuyerAgent(instance, buyerHistory);
+      const buyerResp = await callBuyerAgent(instance, negotiation, buyerHistory);
       insertMessage(negotiation.id, "buyer", buyerResp.message, turn);
       emit(negotiation.id, { type: "buyer_response", negotiation_id: negotiation.id, turn });
 

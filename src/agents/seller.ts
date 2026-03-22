@@ -31,7 +31,8 @@ ${negotiation.seller_proof}`;
     .replace(/\{\{seller_info\}\}/g, negotiation.seller_info ?? "")
     .replace(/\{\{proof_section\}\}/g, proofSection)
     .replace(/\{\{buyer_requirement\}\}/g, instance.buyer_requirement)
-    .replace(/\{\{max_payment\}\}/g, String(instance.max_payment));
+    .replace(/\{\{max_payment\}\}/g, String(instance.max_payment))
+    .replace(/\{\{custom_instructions\}\}/g, negotiation.seller_prompt ? `SELLER'S INSTRUCTIONS:\n${negotiation.seller_prompt}` : "");
 }
 
 export interface SellerResponse {
