@@ -14,6 +14,12 @@ export function Header() {
         TBVH
       </Link>
       <div className="flex items-center gap-3">
+        <Link
+          to="/docs"
+          className="px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+        >
+          Docs
+        </Link>
         {isAuthenticated && (
           <Link
             to="/mine"

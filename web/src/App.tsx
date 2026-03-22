@@ -5,6 +5,7 @@ import CreateInstancePage from "./pages/CreateInstancePage";
 import InstanceDetailPage from "./pages/InstanceDetailPage";
 import MyInstancesPage from "./pages/MyInstancesPage";
 import VerifyPage from "./pages/VerifyPage";
+import DocsPage from "./pages/DocsPage";
 
 function Layout() {
   return (
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
       { path: "/instances/:id", element: <InstanceDetailPage /> },
       { path: "/mine", element: <MyInstancesPage /> },
       { path: "/verify/:negotiationId", element: <VerifyPage /> },
+      { path: "/docs", element: <DocsPage /> },
     ],
   },
 ]);

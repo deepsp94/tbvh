@@ -20,7 +20,7 @@ dist/
 web/dist/
 *.tsbuildinfo
 
-docs/
+notes/
 
 # Contracts
 contracts/lib/
