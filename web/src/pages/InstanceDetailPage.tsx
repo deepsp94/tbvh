@@ -205,20 +205,24 @@ export default function InstanceDetailPage() {
         {/* Buyer actions */}
         {isBuyer && instance.status === "open" && (
           <div className="flex gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => closeMutation.mutate()}
-              disabled={closeMutation.isPending}
-            >
-              {closeMutation.isPending ? "Closing…" : "Close Instance"}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting…" : "Delete Instance"}
-            </Button>
+            <span title="Stop accepting new sellers. Existing negotiations continue.">
+              <Button
+                variant="ghost"
+                onClick={() => closeMutation.mutate()}
+                disabled={closeMutation.isPending}
+              >
+                {closeMutation.isPending ? "Closing…" : "Close Instance"}
+              </Button>
+            </span>
+            <span title="Permanently delete this instance and all its negotiations.">
+              <Button
+                variant="ghost"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Deleting…" : "Delete Instance"}
+              </Button>
+            </span>
           </div>
         )}
 
