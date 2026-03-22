@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   tbvh:
-    image: deepsp94/tbvh-tee-core:v4
+    image: deepsp94/tbvh-tee-core:v5
     user: root
     ports:
       - "3000:3000"
@@ -17,6 +17,7 @@ services:
       - CHAIN_ID=${CHAIN_ID:-84532}
       - ESCROW_CONTRACT=${ESCROW_CONTRACT}
       - USDC_CONTRACT=${USDC_CONTRACT}
+      - ALCHEMY_API_KEY=${ALCHEMY_API_KEY}
     volumes:
       - tbvh-data:/data
       - /var/run/tappd.sock:/var/run/tappd.sock
