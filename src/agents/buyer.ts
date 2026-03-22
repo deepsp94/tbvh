@@ -15,7 +15,12 @@ const template = readFileSync(resolve(__dirname, "../../../prompts/buyer.txt"), 
 
 function buildProofStatus(negotiation: Negotiation): string {
   if (negotiation.proof_type === "email" && negotiation.email_verified) {
-    return `SELLER PROOF STATUS: The seller's proof has been independently verified by the system. A DKIM-signed email from "${negotiation.email_domain}" was cryptographically validated — this confirms the seller has a genuine, unmodified email from that domain related to their claim. This is a system-level verification, not a claim made by the seller.`;
+    const emailContent = negotiation.email_body
+      ? `\nSubject: ${negotiation.email_subject ?? "(no subject)"}\nBody:\n${negotiation.email_body}`
+      : "";
+    return `VERIFIED EMAIL PROOF (system-verified, not a seller claim):
+A DKIM-signed email from "${negotiation.email_domain}" was cryptographically validated by the system. This is genuine and unmodified.
+${emailContent}`;
   }
   return `SELLER PROOF STATUS: The seller has provided a text description of their proof. This has not been independently verified by the system — treat it as a claim, not a fact.`;
 }
