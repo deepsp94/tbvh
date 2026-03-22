@@ -193,12 +193,14 @@ curl https://<app-id>-3000.dstack-pha-<node>.phala.network/tee/info
 
 The `/tee/info` response includes `signerAddress` — this is the TEE-derived signing key. You need it for the contract deployment.
 
-**Key derivation and when the signer changes:** Phala's DStack derives the signing key from the CVM's app_id, not the Docker image content. This means:
+**Key derivation and when the signer changes:** Phala's DStack design documents describe key derivation as `KDF(RootKey, (deployer_id, app_hash, ...))`, which implies the Docker image hash is an input — meaning image changes should rotate the key. However, the practical `deriveKey` SDK docs say keys are "derived from your app's unique master key (tied to app ID)." In our testing, updating an existing CVM with a new image (v5→v6) **did not change the signer**, while deleting and recreating the CVM **did**.
 
-- **Updating an existing CVM** (`phala deploy --cvm-id ...`) with a new image tag **does not change the signer**, because the app_id stays the same. You can push code updates without touching the escrow contract.
-- **Deleting and recreating a CVM** (`phala cvms delete` then `phala deploy --name ...`) **does change the signer**, because a new app_id is assigned. You'll need to either redeploy contracts with the new signer or call `setTeeSigner()` on the existing contract.
+In practice:
 
-This is an important distinction — it means routine code deployments are simple (just push a new image), while only full reprovisioning requires contract updates.
+- **Updating an existing CVM** (`phala deploy --cvm-id ...`) with a new image tag has not changed the signer in our experience. But this may be implementation-specific and could change — always verify by checking `/tee/info` after redeployment.
+- **Deleting and recreating a CVM** (`phala cvms delete` then `phala deploy --name ...`) assigns a new app_id and **does change the signer**. You'll need to either redeploy contracts or call `setTeeSigner()` on the existing contract.
+
+Always check `/tee/info` after any redeployment to confirm whether the signer changed.
 
 To update an existing CVM:
 
@@ -269,9 +271,7 @@ The backend validates SIWE signatures against `SIWE_DOMAIN`. This must match the
 
 ### Updating the backend after code changes
 
-**In-place update** (recommended — signer stays the same):
-
-Since key derivation is bound to the app_id (not the image), updating an existing CVM preserves the signer. No contract changes needed.
+**In-place update** (recommended — signer has not changed in our experience):
 
 ```bash
 # 1. Build and push new image
@@ -281,8 +281,11 @@ docker push <user>/tbvh-tee-core:v7
 # 2. Update docker-compose.yml with the new tag, then deploy
 phala deploy --cvm-id <cvm-name> --compose ./docker-compose.yml -e ./.env
 
-# 3. Verify the signer hasn't changed
+# 3. ALWAYS verify the signer after redeployment
 curl https://<app-id>-3000.dstack-pha-<node>.phala.network/tee/info
+# If signerAddress changed, call setTeeSigner() on the escrow contract:
+# cast send <escrow-address> "setTeeSigner(address)" <new-signer> \
+#   --rpc-url <rpc-url> --private-key <deployer-key>
 ```
 
 **Fresh deploy** (new app_id — signer changes, clean slate):
@@ -323,7 +326,7 @@ phala deploy --cvm-id <cvm-name> --compose ./docker-compose.yml -e ./.env
 
 | What changed | What to do |
 |---|---|
-| Backend code | Build new image, push, `phala deploy --cvm-id ...`. Signer stays the same. |
+| Backend code | Build new image, push, `phala deploy --cvm-id ...`. Check `/tee/info` — if signer changed, call `setTeeSigner()`. |
 | Backend env vars only | `phala deploy --cvm-id ...` with updated `.env`. |
 | Full reprovision (new CVM) | Delete + redeploy. **Signer changes** — update contracts or call `setTeeSigner()`. |
 | Frontend code | Push to GitHub (auto-deploys) or `vercel --prod`. |
