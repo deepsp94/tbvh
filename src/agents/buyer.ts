@@ -11,7 +11,7 @@ const client = new OpenAI({
 });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const template = readFileSync(resolve(__dirname, "../../prompts/buyer.txt"), "utf-8");
+const template = readFileSync(resolve(__dirname, "../../../prompts/buyer.txt"), "utf-8");
 
 function buildPrompt(instance: Instance): string {
   const customInstructions = instance.buyer_prompt ?? "Negotiate firmly but fairly.";

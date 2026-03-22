@@ -11,7 +11,7 @@ const client = new OpenAI({
 });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const template = readFileSync(resolve(__dirname, "../../prompts/seller.txt"), "utf-8");
+const template = readFileSync(resolve(__dirname, "../../../prompts/seller.txt"), "utf-8");
 
 function buildPrompt(instance: Instance, negotiation: Negotiation): string {
   let proofSection: string;

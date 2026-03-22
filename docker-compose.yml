@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   tbvh:
-    image: deepsp94/tbvh-tee-core:v7
+    image: deepsp94/tbvh-tee-core:v9
     user: root
     ports:
       - "3000:3000"
