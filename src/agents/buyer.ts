@@ -1,3 +1,6 @@
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { config } from "../config.js";
 import type { Instance } from "@shared/types.js";
@@ -6,6 +9,18 @@ const client = new OpenAI({
   apiKey: config.phalaApiKey,
   baseURL: config.redpillBaseUrl,
 });
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const template = readFileSync(resolve(__dirname, "../../prompts/buyer.txt"), "utf-8");
+
+function buildPrompt(instance: Instance): string {
+  const customInstructions = instance.buyer_prompt ?? "Negotiate firmly but fairly.";
+
+  return template
+    .replace(/\{\{buyer_requirement\}\}/g, instance.buyer_requirement)
+    .replace(/\{\{max_payment\}\}/g, String(instance.max_payment))
+    .replace(/\{\{custom_instructions\}\}/g, customInstructions);
+}
 
 export interface BuyerResponse {
   message: string;
@@ -18,26 +33,7 @@ export async function callBuyerAgent(
   instance: Instance,
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
 ): Promise<BuyerResponse> {
-  const customInstructions = instance.buyer_prompt ?? "Negotiate firmly but fairly.";
-
-  const systemPrompt = `You are negotiating on behalf of a buyer seeking information.
-
-YOUR REQUIREMENT:
-${instance.buyer_requirement}
-
-YOUR BUDGET: ${instance.max_payment} USDC (never offer more than this)
-
-${customInstructions}
-
-Accept only if the information clearly meets your requirement and the price is within budget.
-Reject if the information clearly doesn't meet your requirement or the price is unacceptable.
-Continue to negotiate for a lower price if you want to keep going.
-
-Respond ONLY with valid JSON, no other text:
-{"message": "<your message to the seller>", "decision": "ACCEPT"|"REJECT"|"CONTINUE", "offer_price": <number>}
-
-"decision" must be exactly one of: ACCEPT, REJECT, CONTINUE.
-"offer_price" is your current offer in USDC. Must not exceed ${instance.max_payment}.`;
+  const systemPrompt = buildPrompt(instance);
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },

@@ -22,6 +22,7 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/shared ./shared
+COPY prompts/ ./prompts/
 
 EXPOSE 3000
 

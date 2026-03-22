@@ -1,3 +1,6 @@
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import OpenAI from "openai";
 import { config } from "../config.js";
 import type { Instance, Negotiation } from "@shared/types.js";
@@ -7,17 +10,10 @@ const client = new OpenAI({
   baseURL: config.redpillBaseUrl,
 });
 
-export interface SellerResponse {
-  message: string;
-  asking_price: number;
-  tokens_used: number;
-}
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const template = readFileSync(resolve(__dirname, "../../prompts/seller.txt"), "utf-8");
 
-export async function callSellerAgent(
-  instance: Instance,
-  negotiation: Negotiation,
-  conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
-): Promise<SellerResponse> {
+function buildPrompt(instance: Instance, negotiation: Negotiation): string {
   let proofSection: string;
   if (negotiation.proof_type === "email" && negotiation.email_verified && negotiation.email_body) {
     proofSection = `PROOF OF AUTHENTICITY (TEE-VERIFIED EMAIL from ${negotiation.email_domain}):
@@ -31,23 +27,25 @@ This email has been cryptographically verified via DKIM by the TEE. It is genuin
 ${negotiation.seller_proof}`;
   }
 
-  const systemPrompt = `You are negotiating on behalf of a seller of information.
+  return template
+    .replace(/\{\{seller_info\}\}/g, negotiation.seller_info ?? "")
+    .replace(/\{\{proof_section\}\}/g, proofSection)
+    .replace(/\{\{buyer_requirement\}\}/g, instance.buyer_requirement)
+    .replace(/\{\{max_payment\}\}/g, String(instance.max_payment));
+}
 
-YOUR INFORMATION:
-${negotiation.seller_info}
+export interface SellerResponse {
+  message: string;
+  asking_price: number;
+  tokens_used: number;
+}
 
-${proofSection}
-
-BUYER'S REQUIREMENT:
-${instance.buyer_requirement}
-
-Convince the buyer your information meets their requirement. Negotiate for the highest price.
-Never fabricate. You may describe what you know in general terms before a deal is struck.
-
-Respond ONLY with valid JSON, no other text:
-{"message": "<your message to the buyer>", "asking_price": <number>}
-
-"asking_price" is your current asking price in USDC as a plain number (e.g. 42.5).`;
+export async function callSellerAgent(
+  instance: Instance,
+  negotiation: Negotiation,
+  conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
+): Promise<SellerResponse> {
+  const systemPrompt = buildPrompt(instance, negotiation);
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
