@@ -4,7 +4,7 @@ import { Badge } from "./ui/Badge";
 import { ProgressTimeline } from "./ProgressTimeline";
 import { OutcomeDisplay } from "./OutcomeDisplay";
 import { EscrowPanel } from "./EscrowPanel";
-import { runNegotiation, acceptNegotiation, cancelNegotiation } from "../lib/api";
+import { acceptNegotiation, cancelNegotiation } from "../lib/api";
 import type { BuyerNegotiationView, SellerNegotiationView, PublicNegotiationView, NegotiationStatus, ProgressEvent } from "@shared/types.js";
 
 // Union of all views; PublicNegotiationView lacks status so we use 'accepted' default for public
@@ -43,13 +43,6 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
   const status = getStatus(n);
 
   const negEvents = events.filter((e) => e.negotiation_id === n.id);
-
-  const runMutation = useMutation({
-    mutationFn: () => runNegotiation(n.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["negotiations", instanceId] });
-    },
-  });
 
   const acceptMutation = useMutation({
     mutationFn: () => acceptNegotiation(n.id),
@@ -132,15 +125,6 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
       {/* Buyer actions */}
       {isBuyer && (
         <div className="flex gap-2 mt-3">
-          {status === "committed" && (
-            <Button
-              size="sm"
-              onClick={() => runMutation.mutate()}
-              disabled={runMutation.isPending}
-            >
-              {runMutation.isPending ? "Starting…" : "Start"}
-            </Button>
-          )}
           {status === "proposed" && (
             <Button
               size="sm"
@@ -165,7 +149,7 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
 
       {/* Seller view: status messages */}
       {isSeller && status === "committed" && (
-        <p className="text-xs text-zinc-500 mt-2">Waiting for buyer to start</p>
+        <p className="text-xs text-zinc-500 mt-2">Starting…</p>
       )}
       {isSeller && status === "proposed" && (
         <p className="text-xs text-zinc-500 mt-2">
@@ -185,11 +169,6 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
       )}
 
       {/* Error messages */}
-      {runMutation.isError && (
-        <p className="text-xs text-red-400 mt-2">
-          {runMutation.error instanceof Error ? runMutation.error.message : "Failed"}
-        </p>
-      )}
       {acceptMutation.isError && (
         <p className="text-xs text-red-400 mt-2">
           {acceptMutation.error instanceof Error ? acceptMutation.error.message : "Failed"}

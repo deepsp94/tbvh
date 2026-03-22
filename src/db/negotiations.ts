@@ -66,6 +66,14 @@ export function hasActiveNegotiation(instanceId: string, sellerAddress: string):
   return !!row;
 }
 
+export function countNegotiationsByInstance(instanceId: string): number {
+  const db = getDb();
+  const row = db
+    .prepare("SELECT COUNT(*) as cnt FROM negotiations WHERE instance_id = ?")
+    .get(instanceId) as { cnt: number };
+  return row.cnt;
+}
+
 export function hasAcceptedNegotiation(instanceId: string): boolean {
   const db = getDb();
   const row = db

@@ -116,14 +116,6 @@ export async function listNegotiations(
   return handleResponse<(BuyerNegotiationView | SellerNegotiationView | PublicNegotiationView)[]>(res);
 }
 
-export async function runNegotiation(nid: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE}/negotiations/${nid}/run`, {
-    method: "POST",
-    headers: authHeaders(),
-  });
-  return handleResponse<{ message: string }>(res);
-}
-
 export async function acceptNegotiation(nid: string): Promise<BuyerNegotiationView> {
   const res = await fetch(`${BASE}/negotiations/${nid}/accept`, {
     method: "POST",

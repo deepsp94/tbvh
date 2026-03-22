@@ -7,6 +7,7 @@ import {
   getNegotiationById,
   getNegotiationsByInstance,
   hasActiveNegotiation,
+  countNegotiationsByInstance,
   setRunning,
   setAccepted,
   setCancelled,
@@ -19,7 +20,6 @@ import {
   getEventsByInstance,
   getEventsByInstanceAfter,
 } from "../db/events.js";
-import { checkNegotiationLimit, recordNegotiation } from "../db/usage.js";
 import { requireAuth, optionalAuth, type Variables } from "../auth/middleware.js";
 import { verifyToken } from "../auth/jwt.js";
 import { runNegotiation } from "../negotiation.js";
@@ -114,6 +114,9 @@ negotiationRoutes.post("/instances/:id/negotiate", requireAuth, async (c) => {
   if (hasActiveNegotiation(instanceId, address)) {
     return c.json({ error: "You already have an active negotiation on this instance" }, 409);
   }
+  if (countNegotiationsByInstance(instanceId) >= config.maxNegotiationsPerDay) {
+    return c.json({ error: "This instance has reached its negotiation limit" }, 429);
+  }
 
   const contentType = c.req.header("content-type") ?? "";
   const isMultipart = contentType.includes("multipart/form-data");
@@ -180,7 +183,17 @@ negotiationRoutes.post("/instances/:id/negotiate", requireAuth, async (c) => {
     email_body: emailBody,
     email_verified: emailVerified,
   });
-  return c.json(toSellerView(negotiation), 201);
+
+  // Auto-start: immediately set to running and fire negotiation
+  const result = setRunning(negotiation.id);
+  if (result.success && result.negotiation) {
+    runNegotiation(result.negotiation).catch((err) =>
+      console.error("Negotiation failed for", negotiation.id, ":", err)
+    );
+  }
+
+  const updated = getNegotiationById(negotiation.id)!;
+  return c.json(toSellerView(updated), 201);
 });
 
 // GET /instances/:id/negotiations — list negotiations for instance
@@ -209,38 +222,6 @@ negotiationRoutes.get("/instances/:id/negotiations", optionalAuth, (c) => {
   // Non-participant: only accepted
   const accepted = negotiations.filter((n) => n.status === "accepted");
   return c.json(accepted.map(toPublicView));
-});
-
-// POST /negotiations/:nid/run — buyer starts negotiation
-negotiationRoutes.post("/negotiations/:nid/run", requireAuth, async (c) => {
-  const nid = c.req.param("nid");
-  const address = c.get("address");
-
-  const negotiation = getNegotiationById(nid);
-  if (!negotiation) return c.json({ error: "Negotiation not found" }, 404);
-
-  const instance = getInstanceById(negotiation.instance_id);
-  if (!instance) return c.json({ error: "Instance not found" }, 404);
-  if (instance.buyer_address !== address) {
-    return c.json({ error: "Only the buyer can start negotiation" }, 403);
-  }
-
-  if (!checkNegotiationLimit(address)) {
-    return c.json({ error: "Daily negotiation limit reached" }, 429);
-  }
-
-  const result = setRunning(nid);
-  if (!result.success) {
-    return c.json({ error: "Negotiation must be committed before running" }, 409);
-  }
-
-  recordNegotiation(address);
-
-  runNegotiation(result.negotiation!).catch((err) =>
-    console.error("Negotiation failed for", nid, ":", err)
-  );
-
-  return c.json({ message: "Negotiation started" }, 202);
 });
 
 // GET /instances/:id/stream — buyer stream (all negotiations for instance)
