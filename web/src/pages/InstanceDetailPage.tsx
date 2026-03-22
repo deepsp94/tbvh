@@ -281,8 +281,8 @@ export default function InstanceDetailPage() {
           </div>
         )}
 
-        {/* Commit form for non-buyers on open instances */}
-        {!isBuyer && isAuthenticated && instance.status === "open" && (
+        {/* Commit form for non-buyers on open instances (hide if seller already has a negotiation) */}
+        {!isBuyer && isAuthenticated && instance.status === "open" && !negotiations.some((n) => n.seller_address === address) && (
           <CommitForm
             instanceId={id!}
             onSuccess={() => {
