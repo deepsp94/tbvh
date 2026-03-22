@@ -35,6 +35,14 @@ Both the buyer and the seller have their own AI agent. The agents negotiate with
 
 If the agents can't agree, the negotiation is rejected and the seller's information is wiped from the database (the buyer never sees it).
 
+### Email proof (DKIM verification)
+
+Sellers can optionally attach a `.eml` file as proof of authenticity instead of a text description. The TEE verifies the email's DKIM signature — the cryptographic signature that email providers attach to every outgoing email. If valid, the TEE knows the email genuinely came from the claimed domain and hasn't been tampered with.
+
+During negotiation, the verified email content is injected into the seller agent's system prompt, clearly marked as TEE-verified. This gives the buyer's agent stronger confidence in the information's authenticity. After the negotiation reaches a terminal state (proposed, rejected, failed, cancelled), the email subject and body are deleted from the database. Only the domain and verified flag are retained as metadata. The buyer never sees the raw email content — only a "DKIM verified from {domain}" badge.
+
+This is the first proof type. The system is designed to be extensible to other proof types (e.g. zkTLS) in the future.
+
 ## Architecture
 
 | Component | Stack | Runs on |
@@ -49,7 +57,7 @@ If the agents can't agree, the negotiation is rejected and the seller's informat
 The backend holds seller information, runs negotiations, and signs outcomes. Running inside a TEE (Trusted Execution Environment) means:
 
 - The host cannot read seller data or negotiation messages from memory.
-- The signing key is derived deterministically from the code itself — if the code changes, the key changes.
+- The signing key is derived deterministically by the TEE hardware — it is bound to the CVM's identity and cannot be extracted.
 - Attestation proves to anyone that the exact published code is what's running.
 
 The escrow contract only accepts signatures from the TEE signer, so funds can only be released or refunded based on genuine negotiation outcomes.
@@ -185,9 +193,14 @@ curl https://<app-id>-3000.dstack-pha-<node>.phala.network/tee/info
 
 The `/tee/info` response includes `signerAddress` — this is the TEE-derived signing key. You need it for the contract deployment.
 
-The signer address is deterministic: same Docker image content = same key. But if you rebuild the image with code changes, the signer changes and you need to either redeploy contracts or call `setTeeSigner()` on the existing escrow contract.
+**Key derivation and when the signer changes:** Phala's DStack derives the signing key from the CVM's app_id, not the Docker image content. This means:
 
-To update an existing CVM (e.g. to push new env vars without changing the image):
+- **Updating an existing CVM** (`phala deploy --cvm-id ...`) with a new image tag **does not change the signer**, because the app_id stays the same. You can push code updates without touching the escrow contract.
+- **Deleting and recreating a CVM** (`phala cvms delete` then `phala deploy --name ...`) **does change the signer**, because a new app_id is assigned. You'll need to either redeploy contracts with the new signer or call `setTeeSigner()` on the existing contract.
+
+This is an important distinction — it means routine code deployments are simple (just push a new image), while only full reprovisioning requires contract updates.
+
+To update an existing CVM:
 
 ```bash
 phala deploy --cvm-id <cvm-name> --compose ./docker-compose.yml -e ./.env
@@ -256,36 +269,30 @@ The backend validates SIWE signatures against `SIWE_DOMAIN`. This must match the
 
 ### Updating the backend after code changes
 
-This is the most involved redeployment flow because the TEE signer address is derived from the Docker image content. When the image changes, the signer changes, and the escrow contract needs to know about it.
+**In-place update** (recommended — signer stays the same):
 
-**Option A: Update the signer on the existing contract** (no downtime for existing deposits)
+Since key derivation is bound to the app_id (not the image), updating an existing CVM preserves the signer. No contract changes needed.
 
 ```bash
 # 1. Build and push new image
-docker buildx build --platform linux/amd64 -t <user>/tbvh-tee-core:v6 --load .
-docker push <user>/tbvh-tee-core:v6
+docker buildx build --platform linux/amd64 -t <user>/tbvh-tee-core:v7 --load .
+docker push <user>/tbvh-tee-core:v7
 
 # 2. Update docker-compose.yml with the new tag, then deploy
 phala deploy --cvm-id <cvm-name> --compose ./docker-compose.yml -e ./.env
 
-# 3. Wait for the CVM to come up, then get the new signer
+# 3. Verify the signer hasn't changed
 curl https://<app-id>-3000.dstack-pha-<node>.phala.network/tee/info
-# → note the new signerAddress
-
-# 4. Update the escrow contract's signer (must be called by the contract owner)
-cast send <escrow-address> "setTeeSigner(address)" <new-signer-address> \
-  --rpc-url "https://base-sepolia.g.alchemy.com/v2/<alchemy-key>" \
-  --private-key <deployer-private-key>
 ```
 
-After this, the escrow contract accepts signatures from the new signer. Existing unsettled deposits can still be released or refunded — the signature is generated at accept-time, so as long as `setTeeSigner` is called before anyone tries to claim, it works.
+**Fresh deploy** (new app_id — signer changes, clean slate):
 
-**Option B: Fresh deploy** (clean slate — simpler, but loses existing data)
+Only needed if you want to wipe the database or the CVM is in a bad state. Since a new app_id is assigned, you must update the contracts.
 
 ```bash
 # 1. Build and push
-docker buildx build --platform linux/amd64 -t <user>/tbvh-tee-core:v6 --load .
-docker push <user>/tbvh-tee-core:v6
+docker buildx build --platform linux/amd64 -t <user>/tbvh-tee-core:v7 --load .
+docker push <user>/tbvh-tee-core:v7
 
 # 2. Delete old CVM, deploy new one
 phala cvms delete <cvm-name> --yes
@@ -295,13 +302,18 @@ phala deploy --name <cvm-name> --compose ./docker-compose.yml -e ./.env
 # 3. Get new signer
 curl https://<app-id>-3000.dstack-pha-<node>.phala.network/tee/info
 
-# 4. Deploy fresh contracts with the new signer
+# 4. Either deploy fresh contracts or update the existing contract's signer:
+#    Fresh contracts:
 cd contracts
 TEE_SIGNER=<new-signer> forge script script/Deploy.s.sol:Deploy \
   --rpc-url "https://base-sepolia.g.alchemy.com/v2/<alchemy-key>" \
   --private-key <deployer-private-key> --broadcast
+#    Or update existing:
+cast send <escrow-address> "setTeeSigner(address)" <new-signer-address> \
+  --rpc-url "https://base-sepolia.g.alchemy.com/v2/<alchemy-key>" \
+  --private-key <deployer-private-key>
 
-# 5. Update .env with new contract addresses, redeploy backend
+# 5. Update .env with new contract addresses (if redeployed), redeploy backend
 phala deploy --cvm-id <cvm-name> --compose ./docker-compose.yml -e ./.env
 
 # 6. Update VITE_API_URL on Vercel if the CVM URL changed
@@ -311,8 +323,9 @@ phala deploy --cvm-id <cvm-name> --compose ./docker-compose.yml -e ./.env
 
 | What changed | What to do |
 |---|---|
-| Backend code | See "Updating the backend after code changes" above. |
-| Backend env vars only | `phala deploy --cvm-id ...` with updated `.env`. Same image = same signer. |
+| Backend code | Build new image, push, `phala deploy --cvm-id ...`. Signer stays the same. |
+| Backend env vars only | `phala deploy --cvm-id ...` with updated `.env`. |
+| Full reprovision (new CVM) | Delete + redeploy. **Signer changes** — update contracts or call `setTeeSigner()`. |
 | Frontend code | Push to GitHub (auto-deploys) or `vercel --prod`. |
 | Frontend env vars | Update on Vercel dashboard, redeploy. |
 | Contracts | Redeploy with `forge script`, update `.env` addresses, redeploy backend. |
