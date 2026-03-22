@@ -2,19 +2,37 @@ import { v4 as uuidv4 } from "uuid";
 import { getDb } from "./index.js";
 import type { Negotiation, CommitNegotiationInput } from "@shared/types.js";
 
+export interface CreateNegotiationOpts extends CommitNegotiationInput {
+  email_domain?: string;
+  email_subject?: string;
+  email_body?: string;
+  email_verified?: boolean;
+}
+
 export function createNegotiation(
   instanceId: string,
   sellerAddress: string,
-  input: CommitNegotiationInput
+  opts: CreateNegotiationOpts
 ): Negotiation {
   const db = getDb();
   const id = uuidv4();
   const now = new Date().toISOString();
+  const proofType = opts.proof_type ?? "text";
 
   db.prepare(`
-    INSERT INTO negotiations (id, instance_id, seller_address, seller_info, seller_proof, seller_prompt, status, committed_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'committed', ?)
-  `).run(id, instanceId, sellerAddress.toLowerCase(), input.seller_info, input.seller_proof, input.seller_prompt ?? null, now);
+    INSERT INTO negotiations (
+      id, instance_id, seller_address, seller_info, seller_proof, seller_prompt,
+      proof_type, email_domain, email_subject, email_body, email_verified,
+      status, committed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'committed', ?)
+  `).run(
+    id, instanceId, sellerAddress.toLowerCase(),
+    opts.seller_info, opts.seller_proof ?? null, opts.seller_prompt ?? null,
+    proofType,
+    opts.email_domain ?? null, opts.email_subject ?? null, opts.email_body ?? null,
+    opts.email_verified ? 1 : 0,
+    now
+  );
 
   return getNegotiationById(id) as Negotiation;
 }
@@ -69,8 +87,10 @@ export function setRunning(id: string): { success: boolean; negotiation?: Negoti
 export function setProposed(id: string, askingPrice: number): Negotiation | undefined {
   const db = getDb();
   const now = new Date().toISOString();
+  // Clear ephemeral email content on terminal state
   db.prepare(`
-    UPDATE negotiations SET status = 'proposed', asking_price = ?, completed_at = ? WHERE id = ?
+    UPDATE negotiations SET status = 'proposed', asking_price = ?, completed_at = ?,
+    email_subject = NULL, email_body = NULL WHERE id = ?
   `).run(askingPrice, now, id);
   return getNegotiationById(id);
 }
@@ -86,7 +106,7 @@ export function setRejected(id: string, reasoning: string): Negotiation | undefi
   const now = new Date().toISOString();
   db.prepare(`
     UPDATE negotiations SET status = 'rejected', outcome_reasoning = ?, completed_at = ?,
-    seller_info = NULL, seller_proof = NULL WHERE id = ?
+    seller_info = NULL, seller_proof = NULL, email_subject = NULL, email_body = NULL WHERE id = ?
   `).run(reasoning, now, id);
   return getNegotiationById(id);
 }
@@ -95,7 +115,8 @@ export function setCancelled(id: string): Negotiation | undefined {
   const db = getDb();
   const now = new Date().toISOString();
   db.prepare(`
-    UPDATE negotiations SET status = 'cancelled', completed_at = ? WHERE id = ?
+    UPDATE negotiations SET status = 'cancelled', completed_at = ?,
+    email_subject = NULL, email_body = NULL WHERE id = ?
   `).run(now, id);
   return getNegotiationById(id);
 }
@@ -105,7 +126,7 @@ export function setFailed(id: string, reason: string): Negotiation | undefined {
   const now = new Date().toISOString();
   db.prepare(`
     UPDATE negotiations SET status = 'failed', outcome_reasoning = ?, completed_at = ?,
-    seller_info = NULL, seller_proof = NULL WHERE id = ?
+    seller_info = NULL, seller_proof = NULL, email_subject = NULL, email_body = NULL WHERE id = ?
   `).run(reason, now, id);
   return getNegotiationById(id);
 }

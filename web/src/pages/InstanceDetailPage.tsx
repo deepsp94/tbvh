@@ -33,20 +33,28 @@ function CommitForm({ instanceId, onSuccess }: { instanceId: string; onSuccess: 
   const [sellerInfo, setSellerInfo] = useState("");
   const [sellerProof, setSellerProof] = useState("");
   const [sellerPrompt, setSellerPrompt] = useState("");
+  const [proofType, setProofType] = useState<"text" | "email">("text");
+  const [emailFile, setEmailFile] = useState<File | null>(null);
 
   const mutation = useMutation({
     mutationFn: () =>
-      commitNegotiation(instanceId, {
-        seller_info: sellerInfo,
-        seller_proof: sellerProof,
-        ...(sellerPrompt.trim() ? { seller_prompt: sellerPrompt } : {}),
-      } as CommitNegotiationInput),
+      commitNegotiation(
+        instanceId,
+        {
+          seller_info: sellerInfo,
+          ...(proofType === "text" ? { seller_proof: sellerProof } : {}),
+          ...(sellerPrompt.trim() ? { seller_prompt: sellerPrompt } : {}),
+        } as CommitNegotiationInput,
+        proofType === "email" ? emailFile ?? undefined : undefined
+      ),
     onSuccess,
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!sellerInfo.trim() || !sellerProof.trim()) return;
+    if (!sellerInfo.trim()) return;
+    if (proofType === "text" && !sellerProof.trim()) return;
+    if (proofType === "email" && !emailFile) return;
     mutation.mutate();
   }
 
@@ -66,15 +74,54 @@ function CommitForm({ instanceId, onSuccess }: { instanceId: string; onSuccess: 
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="seller-proof">Proof of Authenticity</Label>
-          <Input
-            id="seller-proof"
-            placeholder="Link, hash, or description of proof..."
-            value={sellerProof}
-            onChange={(e) => setSellerProof(e.target.value)}
-            required
-          />
+          <Label>Proof Type</Label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setProofType("text")}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                proofType === "text" ? "text-zinc-100 bg-zinc-700" : "text-zinc-400 bg-zinc-800 hover:text-zinc-200"
+              }`}
+            >
+              Text
+            </button>
+            <button
+              type="button"
+              onClick={() => setProofType("email")}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                proofType === "email" ? "text-zinc-100 bg-zinc-700" : "text-zinc-400 bg-zinc-800 hover:text-zinc-200"
+              }`}
+            >
+              Email (.eml)
+            </button>
+          </div>
         </div>
+        {proofType === "text" ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="seller-proof">Proof of Authenticity</Label>
+            <Input
+              id="seller-proof"
+              placeholder="Link, hash, or description of proof..."
+              value={sellerProof}
+              onChange={(e) => setSellerProof(e.target.value)}
+              required
+            />
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label htmlFor="email-file">Email Proof (.eml file, max 1MB)</Label>
+            <input
+              id="email-file"
+              type="file"
+              accept=".eml"
+              onChange={(e) => setEmailFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-sm text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:bg-zinc-800 file:text-zinc-200 hover:file:bg-zinc-700 cursor-pointer"
+            />
+            <p className="text-xs text-zinc-500">
+              The TEE will verify DKIM signatures to prove this email is authentic and unmodified.
+            </p>
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="seller-prompt">Custom Negotiation Instructions (optional)</Label>
           <Textarea

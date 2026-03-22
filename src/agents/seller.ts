@@ -18,13 +18,25 @@ export async function callSellerAgent(
   negotiation: Negotiation,
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
 ): Promise<SellerResponse> {
+  let proofSection: string;
+  if (negotiation.proof_type === "email" && negotiation.email_verified && negotiation.email_body) {
+    proofSection = `PROOF OF AUTHENTICITY (TEE-VERIFIED EMAIL from ${negotiation.email_domain}):
+Subject: ${negotiation.email_subject ?? "(no subject)"}
+Body:
+${negotiation.email_body}
+
+This email has been cryptographically verified via DKIM by the TEE. It is genuine and unmodified.`;
+  } else {
+    proofSection = `PROOF OF AUTHENTICITY:
+${negotiation.seller_proof}`;
+  }
+
   const systemPrompt = `You are negotiating on behalf of a seller of information.
 
 YOUR INFORMATION:
 ${negotiation.seller_info}
 
-PROOF OF AUTHENTICITY:
-${negotiation.seller_proof}
+${proofSection}
 
 BUYER'S REQUIREMENT:
 ${instance.buyer_requirement}

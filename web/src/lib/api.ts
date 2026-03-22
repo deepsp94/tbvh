@@ -81,13 +81,29 @@ export async function getMyInstances(): Promise<MyInstancesResponse> {
 // Negotiation endpoints
 export async function commitNegotiation(
   instanceId: string,
-  input: CommitNegotiationInput
+  input: CommitNegotiationInput,
+  emailFile?: File
 ): Promise<SellerNegotiationView> {
-  const res = await fetch(`${BASE}/instances/${instanceId}/negotiate`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify(input),
-  });
+  let res: Response;
+  if (emailFile) {
+    const formData = new FormData();
+    formData.append("seller_info", input.seller_info);
+    if (input.seller_proof) formData.append("seller_proof", input.seller_proof);
+    if (input.seller_prompt) formData.append("seller_prompt", input.seller_prompt);
+    formData.append("email_file", emailFile);
+    const jwt = localStorage.getItem("tbvh_jwt");
+    res = await fetch(`${BASE}/instances/${instanceId}/negotiate`, {
+      method: "POST",
+      headers: jwt ? { Authorization: `Bearer ${jwt}` } : {},
+      body: formData,
+    });
+  } else {
+    res = await fetch(`${BASE}/instances/${instanceId}/negotiate`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(input),
+    });
+  }
   return handleResponse<SellerNegotiationView>(res);
 }
 

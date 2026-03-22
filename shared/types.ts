@@ -38,6 +38,8 @@ export type NegotiationStatus =
   | "cancelled"
   | "failed";
 
+export type ProofType = "text" | "email";
+
 export interface Negotiation {
   id: string;
   instance_id: string;
@@ -45,6 +47,11 @@ export interface Negotiation {
   seller_info: string | null;
   seller_proof: string | null;
   seller_prompt: string | null;
+  proof_type: ProofType;
+  email_domain: string | null;
+  email_subject: string | null;
+  email_body: string | null;
+  email_verified: number;
   status: NegotiationStatus;
   asking_price: number | null;
   outcome_reasoning: string | null;
@@ -67,8 +74,10 @@ export interface CreateInstanceInput {
 
 export interface CommitNegotiationInput {
   seller_info: string;
-  seller_proof: string;
+  seller_proof?: string;
   seller_prompt?: string;
+  proof_type?: ProofType;
+  // email_file is handled as multipart, not in this interface
 }
 
 export interface PublicInstanceView {
@@ -96,6 +105,9 @@ export interface BuyerNegotiationView {
   status: NegotiationStatus;
   asking_price: number | null;
   seller_info: string | null; // only when accepted
+  proof_type: ProofType;
+  email_domain: string | null;
+  email_verified: number;
   outcome_reasoning: string | null;
   outcome_signature: string | null;
   outcome_signer: string | null;
@@ -112,6 +124,9 @@ export interface SellerNegotiationView {
   asking_price: number | null;
   seller_info: string | null; // always visible to seller (their own data)
   seller_proof: string | null;
+  proof_type: ProofType;
+  email_domain: string | null;
+  email_verified: number;
   outcome_reasoning: string | null;
   outcome_signature: string | null;
   outcome_signer: string | null;

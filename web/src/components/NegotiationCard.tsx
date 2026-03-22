@@ -85,6 +85,20 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
         )}
       </div>
 
+      {/* Email proof badge */}
+      {"proof_type" in n && n.proof_type === "email" && "email_verified" in n && (n as BuyerNegotiationView).email_verified === 1 && (
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-emerald-900/40 text-emerald-400 border border-emerald-800/50">
+            DKIM verified
+            {"email_domain" in n && (n as BuyerNegotiationView).email_domain && (
+              <span className="text-emerald-500">
+                {" "}from {(n as BuyerNegotiationView).email_domain}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Running: show turn progress */}
       {status === "running" && (
         <ProgressTimeline

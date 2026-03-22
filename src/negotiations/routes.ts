@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import { ethers } from "ethers";
+import { verifyEmail } from "../email/verify.js";
 import {
   createNegotiation,
   getNegotiationById,
@@ -48,6 +49,9 @@ function toBuyerView(n: Negotiation): BuyerNegotiationView {
     status: n.status,
     asking_price: n.asking_price,
     seller_info: n.status === "accepted" ? n.seller_info : null,
+    proof_type: n.proof_type,
+    email_domain: n.email_domain,
+    email_verified: n.email_verified,
     outcome_reasoning: n.outcome_reasoning,
     outcome_signature: n.outcome_signature,
     outcome_signer: n.outcome_signer,
@@ -66,6 +70,9 @@ function toSellerView(n: Negotiation): SellerNegotiationView {
     asking_price: n.asking_price,
     seller_info: n.seller_info,
     seller_proof: n.seller_proof,
+    proof_type: n.proof_type,
+    email_domain: n.email_domain,
+    email_verified: n.email_verified,
     outcome_reasoning: n.outcome_reasoning,
     outcome_signature: n.outcome_signature,
     outcome_signer: n.outcome_signer,
@@ -91,7 +98,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// POST /instances/:id/negotiate — seller commits
+// POST /instances/:id/negotiate — seller commits (JSON or multipart with .eml)
 negotiationRoutes.post("/instances/:id/negotiate", requireAuth, async (c) => {
   const instanceId = c.req.param("id");
   const address = c.get("address");
@@ -108,15 +115,71 @@ negotiationRoutes.post("/instances/:id/negotiate", requireAuth, async (c) => {
     return c.json({ error: "You already have an active negotiation on this instance" }, 409);
   }
 
-  const body = await c.req.json<CommitNegotiationInput>();
-  if (!body.seller_info || typeof body.seller_info !== "string") {
-    return c.json({ error: "seller_info is required" }, 400);
-  }
-  if (!body.seller_proof || typeof body.seller_proof !== "string") {
-    return c.json({ error: "seller_proof is required" }, 400);
+  const contentType = c.req.header("content-type") ?? "";
+  const isMultipart = contentType.includes("multipart/form-data");
+
+  let sellerInfo: string;
+  let sellerProof: string | undefined;
+  let sellerPrompt: string | undefined;
+  let proofType: "text" | "email" = "text";
+  let emailDomain: string | undefined;
+  let emailSubject: string | undefined;
+  let emailBody: string | undefined;
+  let emailVerified = false;
+
+  if (isMultipart) {
+    const formData = await c.req.formData();
+    sellerInfo = formData.get("seller_info") as string;
+    sellerProof = (formData.get("seller_proof") as string) || undefined;
+    sellerPrompt = (formData.get("seller_prompt") as string) || undefined;
+    const emlFile = formData.get("email_file") as File | null;
+
+    if (!sellerInfo || typeof sellerInfo !== "string") {
+      return c.json({ error: "seller_info is required" }, 400);
+    }
+
+    if (emlFile) {
+      if (emlFile.size > 1_000_000) {
+        return c.json({ error: "Email file must be under 1MB" }, 400);
+      }
+      const emlBuffer = Buffer.from(await emlFile.arrayBuffer());
+      const result = await verifyEmail(emlBuffer);
+      if (!result.verified) {
+        return c.json({ error: result.error ?? "DKIM verification failed" }, 400);
+      }
+      proofType = "email";
+      emailDomain = result.domain ?? undefined;
+      emailSubject = result.subject ?? undefined;
+      emailBody = result.body ?? undefined;
+      emailVerified = true;
+      sellerProof = `Verified email from ${emailDomain}`;
+    } else if (!sellerProof) {
+      return c.json({ error: "seller_proof or email_file is required" }, 400);
+    }
+  } else {
+    const body = await c.req.json<CommitNegotiationInput>();
+    sellerInfo = body.seller_info;
+    sellerProof = body.seller_proof;
+    sellerPrompt = body.seller_prompt;
+
+    if (!sellerInfo || typeof sellerInfo !== "string") {
+      return c.json({ error: "seller_info is required" }, 400);
+    }
+    if (!sellerProof || typeof sellerProof !== "string") {
+      return c.json({ error: "seller_proof is required" }, 400);
+    }
   }
 
-  const negotiation = createNegotiation(instanceId, address, body);
+  const negotiation = createNegotiation(instanceId, address, {
+    seller_info: sellerInfo,
+    seller_proof: sellerProof,
+    seller_prompt: sellerPrompt,
+    proof_type: proofType,
+    email_domain: emailDomain,
+    email_subject: emailSubject,
+    email_body: emailBody,
+    email_verified: emailVerified,
+  });
   return c.json(toSellerView(negotiation), 201);
 });
 
