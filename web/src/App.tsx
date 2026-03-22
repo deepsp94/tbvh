@@ -23,7 +23,7 @@ const router = createBrowserRouter([
       { path: "/create", element: <CreateInstancePage /> },
       { path: "/instances/:id", element: <InstanceDetailPage /> },
       { path: "/mine", element: <MyInstancesPage /> },
-      { path: "/verify/:instanceId", element: <VerifyPage /> },
+      { path: "/verify/:negotiationId", element: <VerifyPage /> },
     ],
   },
 ]);

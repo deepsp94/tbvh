@@ -7,6 +7,7 @@ import { getDb } from "./db/index.js";
 import { authRoutes } from "./auth/routes.js";
 import { startNonceCleanup } from "./auth/cleanup.js";
 import { instanceRoutes } from "./instances/routes.js";
+import { negotiationRoutes } from "./negotiations/routes.js";
 import { teeRoutes } from "./tee/routes.js";
 
 // Initialize database
@@ -25,6 +26,7 @@ app.get("/health", (c) => {
 
 app.route("/auth", authRoutes);
 app.route("/instances", instanceRoutes);
+app.route("/", negotiationRoutes);
 app.route("/tee", teeRoutes);
 
 serve({ fetch: app.fetch, port: config.port }, () => {

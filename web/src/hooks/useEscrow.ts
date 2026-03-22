@@ -2,17 +2,17 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAcc
 import { keccak256, toHex, parseUnits } from "viem";
 import { MOCK_USDC_ABI, TBVH_ESCROW_ABI } from "../config/contracts";
 
-function instanceIdToBytes32(uuid: string): `0x${string}` {
-  return keccak256(toHex(uuid));
+function idToBytes32(id: string): `0x${string}` {
+  return keccak256(toHex(id));
 }
 
 export function useEscrow(
-  instanceId: string,
+  negotiationId: string,
   escrowAddress: `0x${string}`,
   tokenAddress: `0x${string}`
 ) {
   const { address } = useAccount();
-  const bytes32Id = instanceIdToBytes32(instanceId);
+  const bytes32Id = idToBytes32(negotiationId);
 
   // Read deposit state
   const { data: depositData, refetch: refetchDeposit } = useReadContract({

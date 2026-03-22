@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { TappdClient } from "@phala/dstack-sdk";
 import { getTeeWallet, isTeeEnvironment } from "./index.js";
 import { getEip712Domain, EIP712_TYPES, buildOutcomeValue } from "./signing.js";
+import { getNegotiationById } from "../db/negotiations.js";
 import { getInstanceById } from "../db/instances.js";
 import { config } from "../config.js";
 
@@ -38,30 +39,35 @@ teeRoutes.get("/attestation", async (c) => {
   }
 });
 
-teeRoutes.get("/verify/:instanceId", async (c) => {
-  const instanceId = c.req.param("instanceId");
-  const instance = getInstanceById(instanceId);
+teeRoutes.get("/verify/:negotiationId", async (c) => {
+  const negotiationId = c.req.param("negotiationId");
+  const negotiation = getNegotiationById(negotiationId);
 
-  if (!instance) {
-    return c.json({ error: "Instance not found" }, 404);
+  if (!negotiation) {
+    return c.json({ error: "Negotiation not found" }, 404);
   }
-  if (!instance.outcome_signature) {
+  if (!negotiation.outcome_signature) {
     return c.json({ error: "No signed outcome available" }, 400);
   }
 
+  const instance = getInstanceById(negotiation.instance_id);
+  if (!instance) {
+    return c.json({ error: "Instance not found" }, 404);
+  }
+
   const domain = getEip712Domain();
-  const value = buildOutcomeValue(instance);
+  const value = buildOutcomeValue(negotiation, instance.buyer_address);
 
   return c.json({
-    instanceId: instance.id,
+    negotiationId: negotiation.id,
     buyer: instance.buyer_address,
-    seller: instance.seller_address,
-    outcome: instance.outcome,
+    seller: negotiation.seller_address,
+    outcome: "ACCEPT",
     finalPrice: String(value.finalPrice),
     timestamp: Number(value.timestamp),
-    signature: instance.outcome_signature,
-    signerAddress: instance.outcome_signer,
-    teeAttested: instance.tee_attested === 1,
+    signature: negotiation.outcome_signature,
+    signerAddress: negotiation.outcome_signer,
+    teeAttested: negotiation.tee_attested === 1,
     domain,
     types: EIP712_TYPES,
     value: {

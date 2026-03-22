@@ -7,13 +7,13 @@ interface Props {
 }
 
 export function ProgressTimeline({ events, maxTurns, isRunning }: Props) {
-  const completedTurns = events.filter((e) => e.type === "buyer_message").length;
+  const completedTurns = events.filter((e) => e.type === "buyer_response").length;
   const activeTurn = events.find((e) => e.type === "turn_start" && !events.some(
-    (b) => b.type === "buyer_message" && b.turn === e.turn
+    (b) => b.type === "buyer_response" && b.turn === e.turn
   ))?.turn;
 
   return (
-    <div className="flex items-center gap-2 py-3">
+    <div className="flex items-center gap-2 py-1">
       <div className="flex items-center gap-1.5">
         {Array.from({ length: maxTurns }, (_, i) => {
           const turn = i + 1;
@@ -35,7 +35,7 @@ export function ProgressTimeline({ events, maxTurns, isRunning }: Props) {
         })}
       </div>
       <span className="text-xs text-zinc-500">
-        {completedTurns} / {maxTurns} turns
+        {completedTurns} / {maxTurns}
       </span>
     </div>
   );

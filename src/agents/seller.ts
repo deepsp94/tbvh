@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { config } from "../config.js";
-import type { Instance } from "@shared/types.js";
+import type { Instance, Negotiation } from "@shared/types.js";
 
 const client = new OpenAI({
   apiKey: config.phalaApiKey,
@@ -15,15 +15,16 @@ export interface SellerResponse {
 
 export async function callSellerAgent(
   instance: Instance,
+  negotiation: Negotiation,
   conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
 ): Promise<SellerResponse> {
   const systemPrompt = `You are negotiating on behalf of a seller of information.
 
 YOUR INFORMATION:
-${instance.seller_info}
+${negotiation.seller_info}
 
 PROOF OF AUTHENTICITY:
-${instance.seller_proof}
+${negotiation.seller_proof}
 
 BUYER'S REQUIREMENT:
 ${instance.buyer_requirement}

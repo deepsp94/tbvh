@@ -9,14 +9,14 @@ import { Skeleton } from "../components/ui/Skeleton";
 import { TeeBadge } from "../components/TeeBadge";
 
 export default function VerifyPage() {
-  const { instanceId } = useParams<{ instanceId: string }>();
+  const { negotiationId } = useParams<{ negotiationId: string }>();
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [verifying, setVerifying] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["teeVerify", instanceId],
-    queryFn: () => getTeeVerification(instanceId!),
-    enabled: !!instanceId,
+    queryKey: ["teeVerify", negotiationId],
+    queryFn: () => getTeeVerification(negotiationId!),
+    enabled: !!negotiationId,
   });
 
   useEffect(() => {
@@ -75,10 +75,10 @@ export default function VerifyPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <Link
-        to={`/instances/${instanceId}`}
+        to="/"
         className="text-zinc-500 hover:text-zinc-300 text-sm mb-6 inline-block"
       >
-        ← Back to instance
+        ← Back
       </Link>
 
       <h1 className="text-lg font-semibold mb-6">Outcome Verification</h1>
@@ -96,14 +96,10 @@ export default function VerifyPage() {
         {/* Outcome summary */}
         <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
           <div className="flex items-center gap-3">
-            <Badge variant={data.outcome === "ACCEPT" ? "green" : "red"}>
-              {data.outcome === "ACCEPT" ? "ACCEPTED" : "REJECTED"}
-            </Badge>
-            {data.outcome === "ACCEPT" && (
-              <span className="text-sm font-medium text-zinc-200">
-                {Number(data.finalPrice) / 1_000_000} USDC
-              </span>
-            )}
+            <Badge variant="green">ACCEPTED</Badge>
+            <span className="text-sm font-medium text-zinc-200">
+              {Number(data.finalPrice) / 1_000_000} USDC
+            </span>
             <TeeBadge
               teeAttested={data.teeAttested ? 1 : 0}
               signature={data.signature}
@@ -114,8 +110,8 @@ export default function VerifyPage() {
         {/* Details */}
         <div className="space-y-3 text-sm">
           <div>
-            <p className="text-xs text-zinc-500 mb-1">Instance</p>
-            <p className="font-mono text-zinc-400 text-xs">{data.instanceId}</p>
+            <p className="text-xs text-zinc-500 mb-1">Negotiation</p>
+            <p className="font-mono text-zinc-400 text-xs">{data.negotiationId}</p>
           </div>
           <div className="flex gap-6">
             <div>

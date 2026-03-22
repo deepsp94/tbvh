@@ -1,12 +1,14 @@
 import type {
   Instance,
   CreateInstanceInput,
-  CommitInstanceInput,
   PublicInstanceView,
-  ParticipantInstanceView,
   MyInstancesResponse,
   TeeInfo,
   TeeVerification,
+  CommitNegotiationInput,
+  BuyerNegotiationView,
+  SellerNegotiationView,
+  PublicNegotiationView,
 } from "@shared/types.js";
 
 import { API_BASE as BASE } from "./apiBase";
@@ -27,17 +29,18 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+// Instance endpoints
 export async function listInstances(status?: string): Promise<PublicInstanceView[]> {
   const url = status ? `${BASE}/instances?status=${status}` : `${BASE}/instances`;
   const res = await fetch(url);
   return handleResponse<PublicInstanceView[]>(res);
 }
 
-export async function getInstance(id: string): Promise<ParticipantInstanceView> {
+export async function getInstance(id: string): Promise<PublicInstanceView> {
   const res = await fetch(`${BASE}/instances/${id}`, {
     headers: authHeaders(),
   });
-  return handleResponse<ParticipantInstanceView>(res);
+  return handleResponse<PublicInstanceView>(res);
 }
 
 export async function createInstance(input: CreateInstanceInput): Promise<Instance> {
@@ -49,19 +52,15 @@ export async function createInstance(input: CreateInstanceInput): Promise<Instan
   return handleResponse<Instance>(res);
 }
 
-export async function commitInstance(
-  id: string,
-  input: CommitInstanceInput
-): Promise<PublicInstanceView> {
-  const res = await fetch(`${BASE}/instances/${id}/commit`, {
+export async function closeInstance(id: string): Promise<PublicInstanceView> {
+  const res = await fetch(`${BASE}/instances/${id}/close`, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify(input),
   });
   return handleResponse<PublicInstanceView>(res);
 }
 
-export async function cancelInstance(id: string): Promise<void> {
+export async function deleteInstance(id: string): Promise<void> {
   const res = await fetch(`${BASE}/instances/${id}`, {
     method: "DELETE",
     headers: authHeaders(),
@@ -79,14 +78,53 @@ export async function getMyInstances(): Promise<MyInstancesResponse> {
   return handleResponse<MyInstancesResponse>(res);
 }
 
-export async function runNegotiation(id: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE}/instances/${id}/run`, {
+// Negotiation endpoints
+export async function commitNegotiation(
+  instanceId: string,
+  input: CommitNegotiationInput
+): Promise<SellerNegotiationView> {
+  const res = await fetch(`${BASE}/instances/${instanceId}/negotiate`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  });
+  return handleResponse<SellerNegotiationView>(res);
+}
+
+export async function listNegotiations(
+  instanceId: string
+): Promise<(BuyerNegotiationView | SellerNegotiationView | PublicNegotiationView)[]> {
+  const res = await fetch(`${BASE}/instances/${instanceId}/negotiations`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<(BuyerNegotiationView | SellerNegotiationView | PublicNegotiationView)[]>(res);
+}
+
+export async function runNegotiation(nid: string): Promise<{ message: string }> {
+  const res = await fetch(`${BASE}/negotiations/${nid}/run`, {
     method: "POST",
     headers: authHeaders(),
   });
   return handleResponse<{ message: string }>(res);
 }
 
+export async function acceptNegotiation(nid: string): Promise<BuyerNegotiationView> {
+  const res = await fetch(`${BASE}/negotiations/${nid}/accept`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse<BuyerNegotiationView>(res);
+}
+
+export async function cancelNegotiation(nid: string): Promise<BuyerNegotiationView> {
+  const res = await fetch(`${BASE}/negotiations/${nid}/cancel`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  return handleResponse<BuyerNegotiationView>(res);
+}
+
+// TEE endpoints
 export async function getTeeInfo(): Promise<TeeInfo> {
   const res = await fetch(`${BASE}/tee/info`);
   return handleResponse<TeeInfo>(res);

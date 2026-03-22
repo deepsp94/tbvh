@@ -1,39 +1,37 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { useConfig } from "../config/ConfigProvider";
 import { useEscrow } from "../hooks/useEscrow";
 import { getTeeVerification } from "../lib/api";
 import { Button } from "./ui/Button";
 import { Badge } from "./ui/Badge";
-import type { ParticipantInstanceView, NegotiationOutcome, TeeVerification } from "@shared/types.js";
+import type { BuyerNegotiationView, TeeVerification } from "@shared/types.js";
+import { useState } from "react";
 
 interface Props {
-  instanceId: string;
-  instance: ParticipantInstanceView;
-  outcome: NegotiationOutcome | null;
+  negotiationId: string;
+  negotiation: BuyerNegotiationView;
   address: string | null;
+  isBuyer: boolean;
+  isSeller: boolean;
+  onAcceptReady?: () => void;
 }
 
-export function EscrowPanel({ instanceId, instance, outcome, address }: Props) {
+export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSeller, onAcceptReady }: Props) {
   const { contractAddress, tokenAddress } = useConfig();
   const escrow = useEscrow(
-    instanceId,
+    negotiationId,
     contractAddress as `0x${string}`,
     tokenAddress as `0x${string}`
   );
   const [verification, setVerification] = useState<TeeVerification | null>(null);
 
-  const isBuyer = address && address === instance.buyer_address;
-  const isSeller = address && address === instance.seller_address;
-
-  // Fetch TEE verification data when needed
   useEffect(() => {
-    if (instance.outcome_signature && (instance.status === "completed")) {
-      getTeeVerification(instanceId).then(setVerification).catch(() => {});
+    if (negotiation.outcome_signature && negotiation.status === "accepted") {
+      getTeeVerification(negotiationId).then(setVerification).catch(() => {});
     }
-  }, [instanceId, instance.outcome_signature, instance.status]);
+  }, [negotiationId, negotiation.outcome_signature, negotiation.status]);
 
-  // Refetch on-chain state after successful tx (delay for chain propagation)
   useEffect(() => {
     if (escrow.isSuccess) {
       const timer = setTimeout(() => escrow.refetchAll(), 2000);
@@ -43,44 +41,41 @@ export function EscrowPanel({ instanceId, instance, outcome, address }: Props) {
 
   const zeroAddr = "0x0000000000000000000000000000000000000000";
   if (contractAddress === zeroAddr || tokenAddress === zeroAddr) {
-    return null; // Contracts not deployed
+    return null;
   }
 
   // Already settled
   if (escrow.deposit?.settled) {
     return (
-      <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900">
-        <div className="flex items-center gap-2">
-          <Badge variant="zinc">Escrow Settled</Badge>
-          <span className="text-xs text-zinc-500">
-            {formatUnits(escrow.deposit.amount, 6)} USDC
-          </span>
-        </div>
+      <div className="flex items-center gap-2 mt-2">
+        <Badge variant="zinc">Settled</Badge>
+        <span className="text-xs text-zinc-500">
+          {formatUnits(escrow.deposit.amount, 6)} USDC
+        </span>
       </div>
     );
   }
 
-  // No deposit yet — show deposit form for buyer
-  if (!escrow.deposit) {
-    if (!isBuyer || instance.status === "created") return null;
+  // Proposed: buyer needs to deposit before accept
+  if (negotiation.status === "proposed" && isBuyer) {
+    const askingPrice = negotiation.asking_price ?? 0;
 
-    const needsApproval = !escrow.allowance || escrow.allowance < parseUnits(String(instance.max_payment), 6);
-    const balanceFormatted = escrow.usdcBalance != null ? formatUnits(escrow.usdcBalance, 6) : "—";
+    if (!escrow.deposit) {
+      const needsApproval = !escrow.allowance || escrow.allowance < parseUnits(String(askingPrice), 6);
+      const balanceFormatted = escrow.usdcBalance != null ? formatUnits(escrow.usdcBalance, 6) : "—";
 
-    return (
-      <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
-        <h3 className="text-sm font-semibold text-zinc-200">Deposit Escrow</h3>
-        <p className="text-xs text-zinc-500">
-          Balance: {balanceFormatted} USDC · Deposit: {instance.max_payment} USDC
-        </p>
-        {escrow.error && (
-          <p className="text-xs text-red-400">{escrow.error.message}</p>
-        )}
-        <div className="flex gap-2">
+      return (
+        <div className="space-y-2 mt-2">
+          <p className="text-xs text-zinc-500">
+            Balance: {balanceFormatted} USDC · Deposit: {askingPrice} USDC
+          </p>
+          {escrow.error && (
+            <p className="text-xs text-red-400">{escrow.error.message}</p>
+          )}
           {needsApproval ? (
             <Button
               size="sm"
-              onClick={() => escrow.approve(instance.max_payment)}
+              onClick={() => escrow.approve(askingPrice)}
               disabled={escrow.isPending || escrow.isConfirming}
             >
               {escrow.isPending || escrow.isConfirming ? "Approving…" : "Approve USDC"}
@@ -88,27 +83,35 @@ export function EscrowPanel({ instanceId, instance, outcome, address }: Props) {
           ) : (
             <Button
               size="sm"
-              onClick={() => { escrow.reset(); escrow.depositFunds(instance.max_payment); }}
+              onClick={() => { escrow.reset(); escrow.depositFunds(askingPrice); }}
               disabled={escrow.isPending || escrow.isConfirming}
             >
               {escrow.isPending || escrow.isConfirming ? "Depositing…" : "Deposit"}
             </Button>
           )}
         </div>
+      );
+    }
+
+    // Has deposit, can accept
+    return (
+      <div className="flex items-center gap-2 mt-2">
+        <Badge variant="blue">Deposited</Badge>
+        <span className="text-xs text-zinc-400">
+          {formatUnits(escrow.deposit.amount, 6)} USDC
+        </span>
       </div>
     );
   }
 
-  // Has deposit, negotiation complete
-  if (outcome && instance.status === "completed") {
-    const depositFormatted = formatUnits(escrow.deposit.amount, 6);
-
-    if (outcome.outcome === "ACCEPT" && isSeller && verification) {
+  // Accepted: seller can claim
+  if (negotiation.status === "accepted" && isSeller && verification) {
+    if (escrow.deposit) {
+      const depositFormatted = formatUnits(escrow.deposit.amount, 6);
       return (
-        <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-200">Claim Payment</h3>
+        <div className="space-y-2 mt-2">
           <p className="text-xs text-zinc-500">
-            Deposited: {depositFormatted} USDC · Final price: {outcome.final_price} USDC
+            Deposited: {depositFormatted} USDC · Price: {negotiation.asking_price} USDC
           </p>
           {escrow.error && (
             <p className="text-xs text-red-400">{escrow.error.message}</p>
@@ -117,7 +120,7 @@ export function EscrowPanel({ instanceId, instance, outcome, address }: Props) {
             size="sm"
             onClick={() =>
               escrow.release(
-                instance.seller_address as `0x${string}`,
+                negotiation.seller_address as `0x${string}`,
                 verification.outcome,
                 BigInt(verification.finalPrice),
                 BigInt(verification.timestamp),
@@ -131,94 +134,31 @@ export function EscrowPanel({ instanceId, instance, outcome, address }: Props) {
         </div>
       );
     }
-
-    if (outcome.outcome === "ACCEPT" && isBuyer) {
-      return (
-        <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-200">Escrow</h3>
-          <p className="text-xs text-zinc-400">
-            {depositFormatted} USDC deposited. Seller can claim {outcome.final_price} USDC.
-            {outcome.final_price != null && Number(depositFormatted) > outcome.final_price && (
-              <> Excess will be returned to you.</>
-            )}
-          </p>
-        </div>
-      );
-    }
-
-    if (outcome.outcome === "REJECT") {
-      if (!isBuyer) return null;
-
-      if (verification) {
-        return (
-          <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
-            <h3 className="text-sm font-semibold text-zinc-200">Refund Escrow</h3>
-            <p className="text-xs text-zinc-500">
-              {depositFormatted} USDC deposited. Negotiation rejected — claim your refund.
-            </p>
-            {escrow.error && (
-              <p className="text-xs text-red-400">{escrow.error.message}</p>
-            )}
-            <Button
-              size="sm"
-              onClick={() =>
-                escrow.refundWithSig(
-                  instance.seller_address as `0x${string}`,
-                  verification.outcome,
-                  BigInt(verification.finalPrice),
-                  BigInt(verification.timestamp),
-                  verification.signature as `0x${string}`
-                )
-              }
-              disabled={escrow.isPending || escrow.isConfirming}
-            >
-              {escrow.isPending || escrow.isConfirming ? "Refunding…" : "Refund"}
-            </Button>
-          </div>
-        );
-      }
-
-      // No signature — show timeout refund
-      const timeoutEnd = Number(escrow.deposit.depositedAt) + 7 * 24 * 60 * 60;
-      const now = Math.floor(Date.now() / 1000);
-      const canRefund = now >= timeoutEnd;
-      const remaining = timeoutEnd - now;
-      const days = Math.floor(remaining / 86400);
-      const hours = Math.floor((remaining % 86400) / 3600);
-
-      return (
-        <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
-          <h3 className="text-sm font-semibold text-zinc-200">Refund Escrow</h3>
-          <p className="text-xs text-zinc-500">
-            {depositFormatted} USDC deposited.
-            {canRefund
-              ? " Timeout reached — you can refund."
-              : ` Refund available in ${days}d ${hours}h.`}
-          </p>
-          {escrow.error && (
-            <p className="text-xs text-red-400">{escrow.error.message}</p>
-          )}
-          <Button
-            size="sm"
-            onClick={() => escrow.refund()}
-            disabled={!canRefund || escrow.isPending || escrow.isConfirming}
-          >
-            {escrow.isPending || escrow.isConfirming ? "Refunding…" : "Refund (timeout)"}
-          </Button>
-        </div>
-      );
-    }
   }
 
-  // Has deposit but negotiation not yet complete — show status
-  return (
-    <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900">
-      <div className="flex items-center gap-2">
+  // Accepted: buyer sees escrow info
+  if (negotiation.status === "accepted" && isBuyer && escrow.deposit) {
+    const depositFormatted = formatUnits(escrow.deposit.amount, 6);
+    return (
+      <div className="mt-2">
+        <p className="text-xs text-zinc-400">
+          {depositFormatted} USDC deposited. Seller can claim {negotiation.asking_price} USDC.
+        </p>
+      </div>
+    );
+  }
+
+  // Has deposit but still running
+  if (escrow.deposit) {
+    return (
+      <div className="flex items-center gap-2 mt-2">
         <Badge variant="blue">Escrowed</Badge>
         <span className="text-xs text-zinc-400">
           {formatUnits(escrow.deposit.amount, 6)} USDC
         </span>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }

@@ -9,19 +9,13 @@ import type { InstanceStatus, PublicInstanceView } from "@shared/types.js";
 
 const STATUS_FILTERS: Array<{ label: string; value: string | undefined }> = [
   { label: "All", value: undefined },
-  { label: "Created", value: "created" },
-  { label: "Committed", value: "committed" },
-  { label: "Running", value: "running" },
-  { label: "Completed", value: "completed" },
-  { label: "Failed", value: "failed" },
+  { label: "Open", value: "open" },
+  { label: "Closed", value: "closed" },
 ];
 
 const STATUS_VARIANTS: Record<InstanceStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
-  created: "amber",
-  committed: "blue",
-  running: "blue",
-  completed: "green",
-  failed: "red",
+  open: "green",
+  closed: "zinc",
 };
 
 function StatusBadge({ status }: { status: InstanceStatus }) {

@@ -1,44 +1,67 @@
 import { Link } from "react-router-dom";
-import type { NegotiationOutcome } from "@shared/types.js";
 import { Badge } from "./ui/Badge";
 import { TeeBadge } from "./TeeBadge";
+import type { NegotiationStatus } from "@shared/types.js";
 
 interface Props {
-  outcome: NegotiationOutcome;
-  instanceId?: string;
+  status: NegotiationStatus;
+  askingPrice: number | null;
+  negotiationId: string;
   teeAttested?: number;
   outcomeSignature?: string | null;
 }
 
-export function OutcomeDisplay({ outcome, instanceId, teeAttested, outcomeSignature }: Props) {
-  const isAccepted = outcome.outcome === "ACCEPT";
-
-  return (
-    <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900 space-y-3">
-      <div className="flex items-center gap-3">
-        <Badge variant={isAccepted ? "green" : "red"}>
-          {isAccepted ? "ACCEPTED" : "REJECTED"}
-        </Badge>
-        {isAccepted && outcome.final_price != null && (
-          <span className="text-sm font-medium text-zinc-200">
-            {outcome.final_price} USDC
-          </span>
-        )}
-        {teeAttested != null && (
-          <TeeBadge teeAttested={teeAttested} signature={outcomeSignature ?? null} />
+export function OutcomeDisplay({ status, askingPrice, negotiationId, teeAttested, outcomeSignature }: Props) {
+  if (status === "accepted") {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Badge variant="green">ACCEPTED</Badge>
+          {askingPrice != null && (
+            <span className="text-sm font-medium text-zinc-200">
+              {askingPrice} USDC
+            </span>
+          )}
+          {teeAttested != null && (
+            <TeeBadge teeAttested={teeAttested} signature={outcomeSignature ?? null} />
+          )}
+        </div>
+        {outcomeSignature && (
+          <Link
+            to={`/verify/${negotiationId}`}
+            className="inline-block text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            Verify outcome →
+          </Link>
         )}
       </div>
-      {outcome.reasoning && (
-        <p className="text-sm text-zinc-400">{outcome.reasoning}</p>
-      )}
-      {outcomeSignature && instanceId && (
-        <Link
-          to={`/verify/${instanceId}`}
-          className="inline-block text-xs text-blue-400 hover:text-blue-300 transition-colors"
-        >
-          Verify outcome →
-        </Link>
-      )}
-    </div>
-  );
+    );
+  }
+
+  if (status === "proposed") {
+    return (
+      <div className="flex items-center gap-3">
+        <Badge variant="amber">PROPOSED</Badge>
+        {askingPrice != null && (
+          <span className="text-sm font-medium text-zinc-200">
+            {askingPrice} USDC
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  if (status === "rejected") {
+    return <Badge variant="red">REJECTED</Badge>;
+  }
+
+  if (status === "cancelled") {
+    return <Badge variant="zinc">CANCELLED</Badge>;
+  }
+
+  if (status === "failed") {
+    return <Badge variant="red">FAILED</Badge>;
+  }
+
+  return null;
 }

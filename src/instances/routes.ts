@@ -1,26 +1,18 @@
 import { Hono } from "hono";
-import { stream } from "hono/streaming";
-import { getDb } from "../db/index.js";
 import {
   createInstance,
   getInstanceById,
-  commitInstance,
   deleteInstance,
   getInstancesByBuyer,
-  getInstancesBySeller,
-  setRunning,
+  listInstances,
+  closeInstance,
 } from "../db/instances.js";
-import { getEvents, getEventsAfter } from "../db/events.js";
-import { checkNegotiationLimit, recordNegotiation } from "../db/usage.js";
+import { getNegotiationsBySeller } from "../db/negotiations.js";
 import { requireAuth, optionalAuth, type Variables } from "../auth/middleware.js";
-import { verifyToken } from "../auth/jwt.js";
-import { runNegotiation } from "../negotiation.js";
 import type {
   Instance,
   CreateInstanceInput,
-  CommitInstanceInput,
   PublicInstanceView,
-  ParticipantInstanceView,
 } from "@shared/types.js";
 
 export const instanceRoutes = new Hono<{ Variables: Variables }>();
@@ -32,54 +24,23 @@ function toPublicView(instance: Instance): PublicInstanceView {
     buyer_address: instance.buyer_address,
     buyer_requirement: instance.buyer_requirement,
     max_payment: instance.max_payment,
-    seller_address: instance.seller_address,
-    committed_at: instance.committed_at,
     created_at: instance.created_at,
   };
-}
-
-function toParticipantView(
-  instance: Instance,
-  asRole: "buyer" | "seller"
-): ParticipantInstanceView {
-  // Buyer only sees seller_info when outcome is ACCEPT
-  const sellerInfo =
-    asRole === "seller"
-      ? instance.seller_info
-      : instance.outcome === "ACCEPT"
-        ? instance.seller_info
-        : null;
-
-  return {
-    id: instance.id,
-    status: instance.status,
-    buyer_address: instance.buyer_address,
-    buyer_requirement: instance.buyer_requirement,
-    max_payment: instance.max_payment,
-    seller_address: instance.seller_address,
-    seller_info: sellerInfo,
-    committed_at: instance.committed_at,
-    started_at: instance.started_at,
-    completed_at: instance.completed_at,
-    outcome: instance.outcome,
-    final_price: instance.final_price,
-    outcome_reasoning: instance.outcome_reasoning,
-    outcome_signature: instance.outcome_signature,
-    outcome_signer: instance.outcome_signer,
-    tee_attested: instance.tee_attested,
-    created_at: instance.created_at,
-  };
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 // GET /mine — must be before GET /:id
 instanceRoutes.get("/mine", requireAuth, (c) => {
   const address = c.get("address");
-  const asBuyer = getInstancesByBuyer(address).map((i) => toParticipantView(i, "buyer"));
-  const asSeller = getInstancesBySeller(address).map((i) => toParticipantView(i, "seller"));
+  const asBuyer = getInstancesByBuyer(address).map(toPublicView);
+  const sellerNegs = getNegotiationsBySeller(address);
+  const asSeller = sellerNegs.map((n) => {
+    const inst = getInstanceById(n.instance_id);
+    return {
+      ...n,
+      buyer_requirement: inst?.buyer_requirement ?? "",
+      max_payment: inst?.max_payment ?? 0,
+    };
+  });
   return c.json({ as_buyer: asBuyer, as_seller: asSeller });
 });
 
@@ -100,123 +61,25 @@ instanceRoutes.post("/", requireAuth, async (c) => {
 
 instanceRoutes.get("/", optionalAuth, (c) => {
   const status = c.req.query("status");
-  const db = getDb();
-
-  const rows = status
-    ? (db
-        .prepare("SELECT * FROM instances WHERE status = ? ORDER BY created_at DESC")
-        .all(status) as Instance[])
-    : (db
-        .prepare("SELECT * FROM instances ORDER BY created_at DESC")
-        .all() as Instance[]);
-
+  const rows = listInstances(status);
   return c.json(rows.map(toPublicView));
 });
 
-instanceRoutes.post("/:id/commit", requireAuth, async (c) => {
-  const id = c.req.param("id");
-  const address = c.get("address");
-
-  const instance = getInstanceById(id);
-  if (!instance) return c.json({ error: "Instance not found" }, 404);
-  if (instance.status !== "created") {
-    return c.json({ error: "Instance is not open for commitment" }, 409);
-  }
-  if (instance.buyer_address === address) {
-    return c.json({ error: "Buyer cannot commit as seller" }, 403);
-  }
-
-  const body = await c.req.json<CommitInstanceInput>();
-  if (!body.seller_info || typeof body.seller_info !== "string") {
-    return c.json({ error: "seller_info is required" }, 400);
-  }
-  if (!body.seller_proof || typeof body.seller_proof !== "string") {
-    return c.json({ error: "seller_proof is required" }, 400);
-  }
-
-  const updated = commitInstance(id, address, body);
-  return c.json(toPublicView(updated!));
-});
-
-instanceRoutes.post("/:id/run", requireAuth, async (c) => {
+instanceRoutes.post("/:id/close", requireAuth, (c) => {
   const id = c.req.param("id");
   const address = c.get("address");
 
   const instance = getInstanceById(id);
   if (!instance) return c.json({ error: "Instance not found" }, 404);
   if (instance.buyer_address !== address) {
-    return c.json({ error: "Only the buyer can start negotiation" }, 403);
+    return c.json({ error: "Only the buyer can close" }, 403);
+  }
+  if (instance.status !== "open") {
+    return c.json({ error: "Instance is not open" }, 409);
   }
 
-  if (!checkNegotiationLimit(address)) {
-    return c.json({ error: "Daily negotiation limit reached" }, 429);
-  }
-
-  const result = setRunning(id);
-  if (!result.success) {
-    return c.json({ error: "Instance must be committed before running" }, 409);
-  }
-
-  recordNegotiation(address);
-
-  runNegotiation(result.instance!).catch((err) =>
-    console.error("Negotiation failed for instance", id, ":", err)
-  );
-
-  return c.json({ message: "Negotiation started" }, 202);
-});
-
-instanceRoutes.get("/:id/stream", async (c) => {
-  const token = c.req.query("token");
-  if (!token) return c.json({ error: "token required" }, 401);
-
-  let address: string;
-  try {
-    const payload = await verifyToken(token);
-    address = payload.sub;
-  } catch {
-    return c.json({ error: "Invalid token" }, 401);
-  }
-
-  const id = c.req.param("id");
-  const instance = getInstanceById(id);
-  if (!instance) return c.json({ error: "Instance not found" }, 404);
-
-  if (instance.buyer_address !== address && instance.seller_address !== address) {
-    return c.json({ error: "Forbidden" }, 403);
-  }
-
-  c.header("Content-Type", "text/event-stream");
-  c.header("Cache-Control", "no-cache");
-  c.header("Connection", "keep-alive");
-  c.header("X-Accel-Buffering", "no");
-
-  return stream(c, async (s) => {
-    let lastSeq = 0;
-    const existing = getEvents(id);
-    for (const ev of existing) {
-      await s.write(`data: ${JSON.stringify(ev)}\n\n`);
-      lastSeq = ev.seq;
-    }
-
-    const isTerminal = (type: string) => type === "outcome" || type === "error";
-    if (existing.some((e) => isTerminal(e.type))) return;
-
-    let heartbeatAt = Date.now();
-    while (true) {
-      await sleep(500);
-      const newEvs = getEventsAfter(id, lastSeq);
-      for (const ev of newEvs) {
-        await s.write(`data: ${JSON.stringify(ev)}\n\n`);
-        lastSeq = ev.seq;
-      }
-      if (Date.now() - heartbeatAt > 15_000) {
-        await s.write(": heartbeat\n\n");
-        heartbeatAt = Date.now();
-      }
-      if (newEvs.some((e) => isTerminal(e.type))) break;
-    }
-  });
+  const updated = closeInstance(id);
+  return c.json(toPublicView(updated!));
 });
 
 instanceRoutes.get("/:id", optionalAuth, (c) => {
@@ -224,14 +87,6 @@ instanceRoutes.get("/:id", optionalAuth, (c) => {
   const instance = getInstanceById(id);
   if (!instance) {
     return c.json({ error: "Instance not found" }, 404);
-  }
-
-  const address = c.get("address");
-  if (address === instance.buyer_address) {
-    return c.json(toParticipantView(instance, "buyer"));
-  }
-  if (address === instance.seller_address) {
-    return c.json(toParticipantView(instance, "seller"));
   }
   return c.json(toPublicView(instance));
 });
@@ -243,10 +98,10 @@ instanceRoutes.delete("/:id", requireAuth, (c) => {
   const instance = getInstanceById(id);
   if (!instance) return c.json({ error: "Instance not found" }, 404);
   if (instance.buyer_address !== address) {
-    return c.json({ error: "Only the buyer can cancel" }, 403);
+    return c.json({ error: "Only the buyer can delete" }, 403);
   }
-  if (instance.status !== "created") {
-    return c.json({ error: "Can only cancel before commitment" }, 409);
+  if (instance.status !== "open") {
+    return c.json({ error: "Can only delete open instances" }, 409);
   }
 
   deleteInstance(id);

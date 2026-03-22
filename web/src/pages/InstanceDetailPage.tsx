@@ -7,20 +7,26 @@ import { Input } from "../components/ui/Input";
 import { Textarea } from "../components/ui/Textarea";
 import { Label } from "../components/ui/Label";
 import { Badge } from "../components/ui/Badge";
-import { NegotiationProgress } from "../components/NegotiationProgress";
-import { ProgressTimeline } from "../components/ProgressTimeline";
-import { OutcomeDisplay } from "../components/OutcomeDisplay";
-import { useNegotiationStream } from "../hooks/useNegotiationStream";
-import { EscrowPanel } from "../components/EscrowPanel";
-import { getInstance, commitInstance, cancelInstance, runNegotiation } from "../lib/api";
-import type { InstanceStatus, CommitInstanceInput, NegotiationOutcome } from "@shared/types.js";
+import { NegotiationCard } from "../components/NegotiationCard";
+import { useInstanceStream } from "../hooks/useNegotiationStream";
+import {
+  getInstance,
+  listNegotiations,
+  commitNegotiation,
+  closeInstance,
+  deleteInstance,
+} from "../lib/api";
+import type {
+  InstanceStatus,
+  CommitNegotiationInput,
+  BuyerNegotiationView,
+  SellerNegotiationView,
+  PublicNegotiationView,
+} from "@shared/types.js";
 
 const STATUS_VARIANTS: Record<InstanceStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
-  created: "amber",
-  committed: "blue",
-  running: "blue",
-  completed: "green",
-  failed: "red",
+  open: "green",
+  closed: "zinc",
 };
 
 function CommitForm({ instanceId, onSuccess }: { instanceId: string; onSuccess: () => void }) {
@@ -30,11 +36,11 @@ function CommitForm({ instanceId, onSuccess }: { instanceId: string; onSuccess: 
 
   const mutation = useMutation({
     mutationFn: () =>
-      commitInstance(instanceId, {
+      commitNegotiation(instanceId, {
         seller_info: sellerInfo,
         seller_proof: sellerProof,
         ...(sellerPrompt.trim() ? { seller_prompt: sellerPrompt } : {}),
-      } as CommitInstanceInput),
+      } as CommitNegotiationInput),
     onSuccess,
   });
 
@@ -98,64 +104,51 @@ export default function InstanceDetailPage() {
   const queryClient = useQueryClient();
   const { address, jwt, isAuthenticated } = useAuth();
 
-  const [isStreaming, setIsStreaming] = useState(false);
-  const { events, isDone } = useNegotiationStream(isStreaming ? id! : null, jwt);
-
   const { data: instance, isLoading, isError } = useQuery({
     queryKey: ["instance", id],
     queryFn: () => getInstance(id!),
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      if (data?.status === "running" && !isDone) return 3000;
-      if (data?.status === "completed" && !data.outcome_signature) return 2000;
-      return false;
-    },
     enabled: !!id,
   });
 
-  // Auto-connect stream if instance is already running/completed/failed
-  useEffect(() => {
-    if (
-      instance?.status &&
-      ["running", "completed", "failed"].includes(instance.status)
-    ) {
-      setIsStreaming(true);
-    }
-  }, [instance?.status]);
+  const { data: negotiations = [], refetch: refetchNegotiations } = useQuery({
+    queryKey: ["negotiations", id],
+    queryFn: () => listNegotiations(id!),
+    enabled: !!id,
+    refetchInterval: 5000,
+  });
 
-  const runMutation = useMutation({
-    mutationFn: () => runNegotiation(id!),
+  const isBuyer = address && instance && address === instance.buyer_address;
+
+  // Only connect stream when there are running negotiations
+  const hasRunning = negotiations.some(
+    (n) => "status" in n && (n.status === "running" || n.status === "committed")
+  );
+  const { events } = useInstanceStream(
+    isBuyer && hasRunning ? id! : null,
+    jwt
+  );
+
+  // Determine role for each negotiation card
+  function getRole(n: BuyerNegotiationView | SellerNegotiationView | PublicNegotiationView): "buyer" | "seller" | "public" {
+    if (address && instance && address === instance.buyer_address) return "buyer";
+    if (address && n.seller_address === address) return "seller";
+    return "public";
+  }
+
+  const closeMutation = useMutation({
+    mutationFn: () => closeInstance(id!),
     onSuccess: () => {
-      setIsStreaming(true);
       queryClient.invalidateQueries({ queryKey: ["instance", id] });
     },
   });
 
-  const cancelMutation = useMutation({
-    mutationFn: () => cancelInstance(id!),
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteInstance(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["instances"] });
       navigate("/");
     },
   });
-
-  // Derive outcome: prefer live stream event, fall back to instance fields
-  const streamOutcome = events.find((e) => e.type === "outcome")?.outcome;
-  const outcome: NegotiationOutcome | null =
-    streamOutcome ??
-    (instance?.outcome
-      ? {
-          outcome: instance.outcome,
-          final_price: instance.final_price ?? null,
-          reasoning: instance.outcome_reasoning ?? "",
-        }
-      : null);
-
-  const isBuyer = address && instance && address === instance.buyer_address;
-  const isRunningOrDone =
-    instance?.status === "running" ||
-    instance?.status === "completed" ||
-    instance?.status === "failed";
 
   if (isLoading) {
     return (
@@ -202,107 +195,61 @@ export default function InstanceDetailPage() {
               <p className="text-xs text-zinc-500 mb-1">Max Payment</p>
               <p className="text-sm text-zinc-200">{instance.max_payment} USDC</p>
             </div>
-            {instance.committed_at && (
-              <div>
-                <p className="text-xs text-zinc-500 mb-1">Committed</p>
-                <p className="text-sm text-zinc-200">
-                  {new Date(instance.committed_at).toLocaleDateString()}
-                </p>
-              </div>
-            )}
           </div>
-          <div className="flex gap-6">
-            <div>
-              <p className="text-xs text-zinc-500 mb-1">Buyer</p>
-              <p className="text-xs font-mono text-zinc-400">{instance.buyer_address}</p>
-            </div>
-            {instance.seller_address && (
-              <div>
-                <p className="text-xs text-zinc-500 mb-1">Seller</p>
-                <p className="text-xs font-mono text-zinc-400">{instance.seller_address}</p>
-              </div>
-            )}
+          <div>
+            <p className="text-xs text-zinc-500 mb-1">Buyer</p>
+            <p className="text-xs font-mono text-zinc-400">{instance.buyer_address}</p>
           </div>
         </div>
 
         {/* Buyer actions */}
-        {isBuyer && instance.status === "created" && (
+        {isBuyer && instance.status === "open" && (
           <div className="flex gap-3">
             <Button
               variant="ghost"
-              onClick={() => cancelMutation.mutate()}
-              disabled={cancelMutation.isPending}
+              onClick={() => closeMutation.mutate()}
+              disabled={closeMutation.isPending}
             >
-              {cancelMutation.isPending ? "Cancelling…" : "Cancel Instance"}
+              {closeMutation.isPending ? "Closing…" : "Close Instance"}
             </Button>
-          </div>
-        )}
-
-        {isBuyer && instance.status === "committed" && (
-          <div>
             <Button
-              onClick={() => runMutation.mutate()}
-              disabled={runMutation.isPending}
+              variant="ghost"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
             >
-              {runMutation.isPending ? "Starting…" : "Start Negotiation"}
+              {deleteMutation.isPending ? "Deleting…" : "Delete Instance"}
             </Button>
-            {runMutation.isError && (
-              <p className="text-sm text-red-400 mt-2">
-                {runMutation.error instanceof Error
-                  ? runMutation.error.message
-                  : "Failed to start negotiation"}
-              </p>
-            )}
           </div>
         )}
 
-        {/* Commit form for non-buyers */}
-        {!isBuyer && isAuthenticated && instance.status === "created" && (
+        {/* Commit form for non-buyers on open instances */}
+        {!isBuyer && isAuthenticated && instance.status === "open" && (
           <CommitForm
             instanceId={id!}
             onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ["instance", id] });
-              queryClient.invalidateQueries({ queryKey: ["instances"] });
+              refetchNegotiations();
+              queryClient.invalidateQueries({ queryKey: ["negotiations", id] });
             }}
           />
         )}
 
-        {/* Negotiation section */}
-        {isRunningOrDone && (
-          <div className="space-y-4 border-t border-zinc-800 pt-6">
-            <h2 className="text-sm font-semibold text-zinc-200">Negotiation</h2>
-            <ProgressTimeline
-              events={events}
-              maxTurns={10}
-              isRunning={instance.status === "running"}
-            />
-            <NegotiationProgress events={events} />
-          </div>
-        )}
-
-        {/* Outcome */}
-        {outcome && (
-          <div className="border-t border-zinc-800 pt-6">
-            <h2 className="text-sm font-semibold text-zinc-200 mb-3">Outcome</h2>
-            <OutcomeDisplay
-              outcome={outcome}
-              instanceId={id}
-              teeAttested={instance.tee_attested}
-              outcomeSignature={instance.outcome_signature}
-            />
-          </div>
-        )}
-
-        {/* Escrow */}
-        {isAuthenticated && instance.status !== "created" && (
-          <div className="border-t border-zinc-800 pt-6">
-            <h2 className="text-sm font-semibold text-zinc-200 mb-3">Escrow</h2>
-            <EscrowPanel
-              instanceId={id!}
-              instance={instance}
-              outcome={outcome}
-              address={address}
-            />
+        {/* Negotiations */}
+        {negotiations.length > 0 && (
+          <div className="space-y-3 border-t border-zinc-800 pt-6">
+            <h2 className="text-sm font-semibold text-zinc-200">
+              Negotiations ({negotiations.length})
+            </h2>
+            {negotiations.map((n) => (
+              <NegotiationCard
+                key={n.id}
+                negotiation={n}
+                role={getRole(n)}
+                instanceId={id!}
+                events={events}
+                maxTurns={10}
+                address={address}
+              />
+            ))}
           </div>
         )}
       </div>
