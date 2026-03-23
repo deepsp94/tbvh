@@ -185,6 +185,7 @@ export interface TeeInfo {
   contractAddress: string;
   tokenAddress: string;
   domain: EIP712Domain;
+  trustCenterUrl: string | null;
 }
 
 export interface TeeVerification {
@@ -197,6 +198,7 @@ export interface TeeVerification {
   signature: string;
   signerAddress: string;
   teeAttested: boolean;
+  trustCenterUrl: string | null;
   domain: EIP712Domain;
   types: Record<string, Array<{ name: string; type: string }>>;
   value: Record<string, unknown>;

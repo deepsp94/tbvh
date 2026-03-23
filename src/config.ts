@@ -15,6 +15,7 @@ export const config = {
   escrowContract: process.env.ESCROW_CONTRACT || "0x0000000000000000000000000000000000000000",
   usdcContract: process.env.USDC_CONTRACT || "0x0000000000000000000000000000000000000000",
   rpcUrl: process.env.RPC_URL || `https://base-sepolia.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY ?? ""}`,
+  appId: process.env.APP_ID || "",
 };
 
 function getJwtSecret(): string {

@@ -10,6 +10,10 @@ export const teeRoutes = new Hono();
 
 teeRoutes.get("/info", async (c) => {
   const wallet = await getTeeWallet();
+  const trustCenterUrl = config.appId
+    ? `https://trust.phala.com/app/${config.appId}`
+    : null;
+
   return c.json({
     enabled: isTeeEnvironment(),
     signerAddress: wallet.address,
@@ -17,6 +21,7 @@ teeRoutes.get("/info", async (c) => {
     contractAddress: config.escrowContract,
     tokenAddress: config.usdcContract,
     domain: getEip712Domain(),
+    trustCenterUrl,
   });
 });
 
@@ -58,6 +63,10 @@ teeRoutes.get("/verify/:negotiationId", async (c) => {
   const domain = getEip712Domain();
   const value = buildOutcomeValue(negotiation, instance.buyer_address);
 
+  const trustCenterUrl = config.appId
+    ? `https://trust.phala.com/app/${config.appId}`
+    : null;
+
   return c.json({
     negotiationId: negotiation.id,
     buyer: instance.buyer_address,
@@ -68,6 +77,7 @@ teeRoutes.get("/verify/:negotiationId", async (c) => {
     signature: negotiation.outcome_signature,
     signerAddress: negotiation.outcome_signer,
     teeAttested: negotiation.tee_attested === 1,
+    trustCenterUrl,
     domain,
     types: EIP712_TYPES,
     value: {

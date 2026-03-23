@@ -159,6 +159,28 @@ export default function VerifyPage() {
             </div>
           </div>
         </details>
+
+        {/* Trust Center link */}
+        {data.teeAttested && data.trustCenterUrl && (
+          <div className="border border-[--color-border] rounded-xl p-4 bg-[--color-surface-1]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-zinc-200 font-medium">TEE Attestation</p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Independently verify that TBVH runs inside a genuine Intel TDX Trusted Execution Environment.
+                </p>
+              </div>
+              <a
+                href={data.trustCenterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 px-3 py-1.5 text-xs font-medium text-teal-400 border border-teal-400/20 rounded-lg hover:bg-teal-400/10 transition-colors"
+              >
+                View on Phala Trust Center →
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ services:
       - ESCROW_CONTRACT=${ESCROW_CONTRACT}
       - USDC_CONTRACT=${USDC_CONTRACT}
       - ALCHEMY_API_KEY=${ALCHEMY_API_KEY}
+      - APP_ID=${APP_ID}
     volumes:
       - tbvh-data:/data
       - /var/run/tappd.sock:/var/run/tappd.sock

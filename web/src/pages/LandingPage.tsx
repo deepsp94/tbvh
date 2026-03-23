@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/Button";
+import { useConfig } from "../config/ConfigProvider";
 
 export default function LandingPage() {
+  const { trustCenterUrl, teeEnabled } = useConfig();
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-20">
       <div className="animate-fade-in-up">
@@ -54,13 +57,23 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
           <Link to="/requests">
             <Button variant="primary" size="md">Browse Requests</Button>
           </Link>
           <Link to="/docs">
             <Button variant="ghost" size="md">Read the Docs</Button>
           </Link>
+          {teeEnabled && trustCenterUrl && (
+            <a
+              href={trustCenterUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-zinc-500 hover:text-teal-400 transition-colors"
+            >
+              Verify our TEE →
+            </a>
+          )}
         </div>
       </div>
     </div>

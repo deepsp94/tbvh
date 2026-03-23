@@ -9,6 +9,7 @@ interface ConfigContextValue {
   contractAddress: string;
   tokenAddress: string;
   domain: EIP712Domain;
+  trustCenterUrl: string | null;
   isLoading: boolean;
 }
 
@@ -19,6 +20,7 @@ const defaults: ConfigContextValue = {
   contractAddress: "0x0000000000000000000000000000000000000000",
   tokenAddress: "0x0000000000000000000000000000000000000000",
   domain: { name: "TBVH", version: "1", chainId: 84532, verifyingContract: "0x0000000000000000000000000000000000000000" },
+  trustCenterUrl: null,
   isLoading: true,
 };
 
@@ -48,6 +50,7 @@ export function ConfigProvider({
           contractAddress: info.contractAddress,
           tokenAddress: info.tokenAddress ?? defaults.tokenAddress,
           domain: info.domain,
+          trustCenterUrl: info.trustCenterUrl ?? null,
           isLoading: false,
         };
         setConfig(c);
