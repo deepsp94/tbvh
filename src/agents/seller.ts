@@ -30,6 +30,7 @@ ${negotiation.seller_proof}`;
   return template
     .replace(/\{\{seller_info\}\}/g, negotiation.seller_info ?? "")
     .replace(/\{\{proof_section\}\}/g, proofSection)
+    .replace(/\{\{buyer_requirement_title\}\}/g, instance.buyer_requirement_title)
     .replace(/\{\{buyer_requirement\}\}/g, instance.buyer_requirement)
     .replace(/\{\{max_payment\}\}/g, String(instance.max_payment))
     .replace(/\{\{custom_instructions\}\}/g, negotiation.seller_prompt ? `SELLER'S INSTRUCTIONS:\n${negotiation.seller_prompt}` : "");

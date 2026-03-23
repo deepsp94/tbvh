@@ -14,9 +14,9 @@ export function createInstance(
   const max_turns = input.max_turns ?? config.maxTurns;
 
   db.prepare(`
-    INSERT INTO instances (id, status, buyer_address, buyer_requirement, buyer_prompt, max_payment, model, max_turns, created_at)
-    VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, buyerAddress.toLowerCase(), input.buyer_requirement, input.buyer_prompt ?? null, input.max_payment, model, max_turns, now);
+    INSERT INTO instances (id, status, buyer_address, buyer_requirement_title, buyer_requirement, buyer_prompt, max_payment, model, max_turns, created_at)
+    VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, buyerAddress.toLowerCase(), input.buyer_requirement_title, input.buyer_requirement, input.buyer_prompt ?? null, input.max_payment, model, max_turns, now);
 
   return getInstanceById(id) as Instance;
 }

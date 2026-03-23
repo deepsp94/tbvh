@@ -252,7 +252,8 @@ export default function InstanceDetailPage() {
               {new Date(instance.created_at).toLocaleString()}
             </span>
           </div>
-          <p className="text-sm text-zinc-200 leading-relaxed mb-4">{instance.buyer_requirement}</p>
+          <h2 className="text-base font-medium text-zinc-100 mb-2">{instance.buyer_requirement_title}</h2>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-4">{instance.buyer_requirement}</p>
           <div className="flex items-center gap-6">
             <div>
               <p className="text-xs text-zinc-500 mb-1">Max Payment</p>

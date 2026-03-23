@@ -13,12 +13,14 @@ export default function CreateInstancePage() {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
 
+  const [title, setTitle] = useState("");
   const [requirement, setRequirement] = useState("");
   const [maxPayment, setMaxPayment] = useState("");
 
   const mutation = useMutation({
     mutationFn: () =>
       createInstance({
+        buyer_requirement_title: title,
         buyer_requirement: requirement,
         max_payment: Number(maxPayment),
       }),
@@ -38,7 +40,7 @@ export default function CreateInstancePage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!requirement.trim()) return;
+    if (!title.trim() || !requirement.trim()) return;
     const payment = Number(maxPayment);
     if (!payment || payment <= 0) return;
     mutation.mutate();
@@ -50,11 +52,22 @@ export default function CreateInstancePage() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1.5">
-          <Label htmlFor="requirement">Buyer Requirement</Label>
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            placeholder="e.g. Snowflake Enterprise pricing"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="requirement">Description</Label>
           <Textarea
             id="requirement"
             rows={4}
-            placeholder="Describe what information you need..."
+            placeholder="Describe what information you need in detail..."
             value={requirement}
             onChange={(e) => setRequirement(e.target.value)}
             required

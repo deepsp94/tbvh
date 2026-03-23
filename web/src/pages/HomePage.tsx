@@ -65,12 +65,15 @@ export default function HomePage() {
             <Link key={instance.id} to={`/instances/${instance.id}`} className="block">
               <Card className="hover:border-[--color-border-hover] hover:bg-[--color-surface-2] cursor-pointer">
                 <CardContent>
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <p className="text-sm text-zinc-200 leading-relaxed">
-                      {instance.buyer_requirement.length > 140
-                        ? instance.buyer_requirement.slice(0, 140) + "..."
-                        : instance.buyer_requirement}
-                    </p>
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div>
+                      <p className="text-sm font-medium text-zinc-100 mb-1">{instance.buyer_requirement_title}</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        {instance.buyer_requirement.length > 120
+                          ? instance.buyer_requirement.slice(0, 120) + "..."
+                          : instance.buyer_requirement}
+                      </p>
+                    </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span className="text-lg font-mono font-semibold text-zinc-100">
                         {formatUsdc(instance.max_payment)}

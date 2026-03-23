@@ -22,6 +22,7 @@ function toPublicView(instance: Instance): PublicInstanceView {
     id: instance.id,
     status: instance.status,
     buyer_address: instance.buyer_address,
+    buyer_requirement_title: instance.buyer_requirement_title,
     buyer_requirement: instance.buyer_requirement,
     max_payment: instance.max_payment,
     created_at: instance.created_at,
@@ -37,6 +38,7 @@ instanceRoutes.get("/mine", requireAuth, (c) => {
     const inst = getInstanceById(n.instance_id);
     return {
       ...n,
+      buyer_requirement_title: inst?.buyer_requirement_title ?? "",
       buyer_requirement: inst?.buyer_requirement ?? "",
       max_payment: inst?.max_payment ?? 0,
     };
@@ -48,6 +50,9 @@ instanceRoutes.post("/", requireAuth, async (c) => {
   const address = c.get("address");
   const body = await c.req.json<CreateInstanceInput>();
 
+  if (!body.buyer_requirement_title || typeof body.buyer_requirement_title !== "string") {
+    return c.json({ error: "buyer_requirement_title is required" }, 400);
+  }
   if (!body.buyer_requirement || typeof body.buyer_requirement !== "string") {
     return c.json({ error: "buyer_requirement is required" }, 400);
   }

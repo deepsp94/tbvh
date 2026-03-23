@@ -21,6 +21,7 @@ export interface Instance {
   id: string;
   status: InstanceStatus;
   buyer_address: string;
+  buyer_requirement_title: string;
   buyer_requirement: string;
   buyer_prompt: string | null;
   max_payment: number;
@@ -65,6 +66,7 @@ export interface Negotiation {
 }
 
 export interface CreateInstanceInput {
+  buyer_requirement_title: string;
   buyer_requirement: string;
   buyer_prompt?: string;
   max_payment: number;
@@ -84,6 +86,7 @@ export interface PublicInstanceView {
   id: string;
   status: InstanceStatus;
   buyer_address: string;
+  buyer_requirement_title: string;
   buyer_requirement: string;
   max_payment: number;
   created_at: string;
@@ -138,7 +141,7 @@ export interface SellerNegotiationView {
 
 export interface MyInstancesResponse {
   as_buyer: PublicInstanceView[];
-  as_seller: Array<SellerNegotiationView & { buyer_requirement: string; max_payment: number }>;
+  as_seller: Array<SellerNegotiationView & { buyer_requirement_title: string; buyer_requirement: string; max_payment: number }>;
 }
 
 export interface Message {

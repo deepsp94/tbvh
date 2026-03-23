@@ -35,9 +35,10 @@ function BuyerInstanceCard({ instance }: { instance: PublicInstanceView }) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-zinc-200 mb-2">
-            {instance.buyer_requirement.length > 120
-              ? instance.buyer_requirement.slice(0, 120) + "…"
+          <p className="text-sm font-medium text-zinc-100 mb-1">{instance.buyer_requirement_title}</p>
+          <p className="text-xs text-zinc-400 mb-2">
+            {instance.buyer_requirement.length > 100
+              ? instance.buyer_requirement.slice(0, 100) + "…"
               : instance.buyer_requirement}
           </p>
           <p className="text-xs text-zinc-500">
@@ -49,7 +50,7 @@ function BuyerInstanceCard({ instance }: { instance: PublicInstanceView }) {
   );
 }
 
-function SellerNegotiationCard({ neg }: { neg: SellerNegotiationView & { buyer_requirement: string; max_payment: number } }) {
+function SellerNegotiationCard({ neg }: { neg: SellerNegotiationView & { buyer_requirement_title: string; buyer_requirement: string; max_payment: number } }) {
   return (
     <Link to={`/instances/${neg.instance_id}`} className="block">
       <Card className="hover:border-zinc-600 transition-colors cursor-pointer">
@@ -62,9 +63,10 @@ function SellerNegotiationCard({ neg }: { neg: SellerNegotiationView & { buyer_r
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-zinc-200 mb-2">
-            {neg.buyer_requirement.length > 120
-              ? neg.buyer_requirement.slice(0, 120) + "…"
+          <p className="text-sm font-medium text-zinc-100 mb-1">{neg.buyer_requirement_title}</p>
+          <p className="text-xs text-zinc-400 mb-2">
+            {neg.buyer_requirement.length > 100
+              ? neg.buyer_requirement.slice(0, 100) + "…"
               : neg.buyer_requirement}
           </p>
           <div className="flex gap-4 text-xs text-zinc-500">

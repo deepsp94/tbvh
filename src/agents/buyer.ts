@@ -30,6 +30,7 @@ function buildPrompt(instance: Instance, negotiation: Negotiation): string {
   const proofStatus = buildProofStatus(negotiation);
 
   return template
+    .replace(/\{\{buyer_requirement_title\}\}/g, instance.buyer_requirement_title)
     .replace(/\{\{buyer_requirement\}\}/g, instance.buyer_requirement)
     .replace(/\{\{max_payment\}\}/g, String(instance.max_payment))
     .replace(/\{\{proof_status\}\}/g, proofStatus)

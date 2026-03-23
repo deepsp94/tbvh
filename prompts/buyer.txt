@@ -20,6 +20,7 @@ Your decision directly determines whether the buyer pays. An incorrect accept wa
 
 <requirement>
 BUYER'S REQUIREMENT:
+{{buyer_requirement_title}}
 {{buyer_requirement}}
 
 BUYER'S BUDGET: {{max_payment}} USDC (never offer more than this)

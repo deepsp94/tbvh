@@ -26,6 +26,7 @@ function runMigrations(db: Database.Database) {
       id TEXT PRIMARY KEY,
       status TEXT NOT NULL DEFAULT 'open',
       buyer_address TEXT NOT NULL,
+      buyer_requirement_title TEXT NOT NULL,
       buyer_requirement TEXT NOT NULL,
       buyer_prompt TEXT,
       max_payment REAL NOT NULL,

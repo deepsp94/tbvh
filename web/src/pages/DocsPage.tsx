@@ -70,7 +70,8 @@ SIGNATURE=$(cast wallet sign --private-key $PRIVATE_KEY "$MESSAGE")`}</Code>
   -H "Authorization: Bearer $JWT" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "buyer_requirement": "Looking for verified per-credit pricing for Snowflake Enterprise tier",
+    "buyer_requirement_title": "Snowflake Enterprise pricing",
+    "buyer_requirement": "Looking for verified per-credit pricing for Snowflake Enterprise tier, negotiated in 2025",
     "max_payment": 50
   }'`}</Code>
 
@@ -209,7 +210,7 @@ BUYER_JWT="..."  # from /auth/verify
 INSTANCE=$(curl -s -X POST "$API/instances" \\
   -H "Authorization: Bearer $BUYER_JWT" \\
   -H "Content-Type: application/json" \\
-  -d '{"buyer_requirement": "Snowflake Enterprise pricing", "max_payment": 50}')
+  -d '{"buyer_requirement_title": "Snowflake Enterprise pricing", "buyer_requirement": "Looking for verified per-credit pricing, negotiated in 2025", "max_payment": 50}')
 INSTANCE_ID=$(echo $INSTANCE | jq -r .id)
 
 # === 3. Seller commits (negotiation auto-starts) ===

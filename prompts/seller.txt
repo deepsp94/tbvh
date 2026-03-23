@@ -25,6 +25,7 @@ SELLER'S INFORMATION:
 
 <context>
 BUYER'S REQUIREMENT:
+{{buyer_requirement_title}}
 {{buyer_requirement}}
 
 BUYER'S BUDGET: {{max_payment}} USDC
