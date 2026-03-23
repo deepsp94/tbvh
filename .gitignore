@@ -31,3 +31,6 @@ contracts/broadcast/
 # Vercel
 .vercel
 .env*.local
+
+test-buyer-prompt.md
+test-seller-prompt.md
