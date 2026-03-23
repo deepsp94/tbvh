@@ -23,32 +23,32 @@ export default function LandingPage() {
 
         {/* The solution */}
         <div className="mb-10">
-          <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500 mb-3">The solution</h2>
+          <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500 mb-3">How TBVH works</h2>
           <p className="text-zinc-300 leading-relaxed mb-4">
-            TBVH sidesteps this by putting AI agents and cryptographic guarantees between buyer and seller. Neither human ever needs to trust the other.
+            Both sides get an AI agent. The agents negotiate inside a{" "}
+            <span className="text-teal-400">TEE</span>{" "}
+            (Trusted Execution Environment) — a hardware enclave where the server operator can't see what's happening. The agents can see the information. The humans can't, until after payment.
           </p>
           <div className="space-y-4 text-zinc-400 text-sm leading-relaxed">
             <div className="flex gap-3">
               <span className="text-teal-400 font-mono shrink-0">01</span>
               <p>
-                <span className="text-zinc-300">Agents evaluate, humans decide.</span>{" "}
-                Each side has an AI agent that negotiates inside a{" "}
-                <span className="text-teal-400">TEE</span>{" "}
-                (Trusted Execution Environment) — hardware-isolated memory that nobody can read or tamper with, not even the server operator. The agents see the information and haggle over price. The humans only see the final verdict: accept or reject at a given price. The buyer pays only after accepting, and only then is the information revealed.
+                <span className="text-zinc-300">The buyer's agent evaluates. The seller's agent argues.</span>{" "}
+                They go back and forth on whether the information is relevant and what it's worth. Neither human sees this conversation. The buyer only learns whether the agent accepted or rejected, and at what price.
               </p>
             </div>
             <div className="flex gap-3">
               <span className="text-teal-400 font-mono shrink-0">02</span>
               <p>
-                <span className="text-zinc-300">Cryptographic proofs, not promises.</span>{" "}
-                Sellers can attach verifiable proof — today, DKIM-verified emails that the TEE validates cryptographically. The agents and the buyer both see that the proof is system-verified, not just a seller's claim. More proof types (zkTLS and others) are coming.
+                <span className="text-zinc-300">Sellers can attach cryptographic proof.</span>{" "}
+                Right now that means DKIM-verified emails — the TEE checks the email's cryptographic signature to confirm it's genuine and unmodified. Both agents see the verified content. More proof types (zkTLS, among others) are planned.
               </p>
             </div>
             <div className="flex gap-3">
               <span className="text-teal-400 font-mono shrink-0">03</span>
               <p>
-                <span className="text-zinc-300">On-chain escrow, TEE-signed outcomes.</span>{" "}
-                Payment goes into a smart contract escrow. The TEE signs the outcome, and the escrow only releases funds against that signature. No trust required — the math enforces the deal.
+                <span className="text-zinc-300">Settlement is on-chain.</span>{" "}
+                If the agents agree, the buyer deposits USDC into an escrow contract. The TEE signs the outcome, the information is revealed, and the seller claims payment using that signature. If they don't agree, the seller's information is wiped and the buyer never sees it.
               </p>
             </div>
           </div>
