@@ -9,21 +9,21 @@ export function Header() {
   const { isAuthenticated, signIn, signOut } = useAuth();
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-      <Link to="/" className="text-xl font-bold hover:text-zinc-300 transition-colors">
+    <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-[--color-border] backdrop-blur-md bg-[--color-surface-0]/80">
+      <Link to="/" className="font-mono font-semibold tracking-tight text-lg text-zinc-100 hover:text-teal-400 transition-colors">
         TBVH
       </Link>
       <div className="flex items-center gap-3">
         <Link
           to="/docs"
-          className="px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+          className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-100 transition-colors"
         >
           Docs
         </Link>
         {isAuthenticated && (
           <Link
             to="/mine"
-            className="px-3 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
+            className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-100 transition-colors"
           >
             My Instances
           </Link>
@@ -33,7 +33,7 @@ export function Header() {
         {isConnected && !isAuthenticated && (
           <button
             onClick={signIn}
-            className="px-4 py-2 text-sm font-medium bg-zinc-100 text-zinc-900 rounded-lg hover:bg-zinc-200 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-teal-500 text-zinc-950 rounded-lg hover:bg-teal-400 transition-all duration-150"
           >
             Sign In
           </button>

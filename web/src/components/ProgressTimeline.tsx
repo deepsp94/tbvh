@@ -13,29 +13,33 @@ export function ProgressTimeline({ events, maxTurns, isRunning }: Props) {
   ))?.turn;
 
   return (
-    <div className="flex items-center gap-2 py-1">
-      <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1 py-2">
+      <div className="flex items-center">
         {Array.from({ length: maxTurns }, (_, i) => {
           const turn = i + 1;
           const done = turn <= completedTurns;
           const active = isRunning && turn === activeTurn;
           return (
-            <div
-              key={turn}
-              className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                done
-                  ? "bg-green-400"
-                  : active
-                  ? "bg-blue-400 animate-pulse"
-                  : "bg-zinc-700"
-              }`}
-              title={`Turn ${turn}`}
-            />
+            <div key={turn} className="flex items-center">
+              {i > 0 && (
+                <div className={`w-3 h-px ${done ? "bg-teal-400/40" : "bg-zinc-700/50"}`} />
+              )}
+              <div
+                className={`h-3 w-3 rounded-full transition-colors ${
+                  done
+                    ? "bg-teal-400"
+                    : active
+                    ? "bg-blue-400 animate-pulse-soft"
+                    : "bg-zinc-700"
+                }`}
+                title={`Turn ${turn}`}
+              />
+            </div>
           );
         })}
       </div>
-      <span className="text-xs text-zinc-500">
-        {completedTurns} / {maxTurns}
+      <span className="text-xs text-zinc-500 ml-2 font-mono">
+        {completedTurns}/{maxTurns}
       </span>
     </div>
   );

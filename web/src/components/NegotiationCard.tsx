@@ -5,6 +5,7 @@ import { ProgressTimeline } from "./ProgressTimeline";
 import { OutcomeDisplay } from "./OutcomeDisplay";
 import { EscrowPanel } from "./EscrowPanel";
 import { acceptNegotiation, cancelNegotiation } from "../lib/api";
+import { shortAddress, formatUsdc } from "../lib/format";
 import type { BuyerNegotiationView, SellerNegotiationView, PublicNegotiationView, NegotiationStatus, ProgressEvent } from "@shared/types.js";
 
 // Union of all views; PublicNegotiationView lacks status so we use 'accepted' default for public
@@ -14,19 +15,15 @@ function getStatus(n: AnyNegotiationView): NegotiationStatus {
   return "status" in n ? n.status : "accepted";
 }
 
-const STATUS_VARIANTS: Record<NegotiationStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
+const STATUS_VARIANTS: Record<NegotiationStatus, "amber" | "blue" | "teal" | "red" | "zinc"> = {
   committed: "amber",
   running: "blue",
   proposed: "amber",
-  accepted: "green",
+  accepted: "teal",
   rejected: "red",
   cancelled: "zinc",
   failed: "red",
 };
-
-function shortAddr(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
 
 interface Props {
   negotiation: AnyNegotiationView;
@@ -62,18 +59,25 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
   const isBuyer = role === "buyer";
   const isSeller = role === "seller";
 
+  const cardClasses = [
+    "border rounded-xl p-4 bg-[--color-surface-1] border-[--color-border] transition-all duration-200",
+    status === "running" ? "border-l-2 border-l-blue-400" : "",
+    isTerminal && status !== "accepted" ? "opacity-50 grayscale" : "",
+  ].join(" ");
+
   return (
-    <div className={`border border-zinc-800 rounded-lg p-4 bg-zinc-900 ${isTerminal && status !== "accepted" ? "opacity-60" : ""}`}>
+    <div className={cardClasses}>
       <div className="flex items-center justify-between gap-3 mb-2">
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANTS[status]}>{status}</Badge>
-          <span className="text-xs font-mono text-zinc-400">
-            {shortAddr(n.seller_address)}
+          <span className="text-xs font-mono text-zinc-500">
+            {shortAddress(n.seller_address)}
           </span>
         </div>
         {n.asking_price != null && (
-          <span className="text-sm font-medium text-zinc-200">
-            {n.asking_price} USDC
+          <span className="text-lg font-mono font-semibold text-zinc-100">
+            {formatUsdc(n.asking_price)}
+            <span className="text-xs text-zinc-500 ml-1 font-normal">USDC</span>
           </span>
         )}
       </div>
@@ -81,14 +85,14 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
       {/* Email proof badge */}
       {"proof_type" in n && n.proof_type === "email" && "email_verified" in n && (n as BuyerNegotiationView).email_verified === 1 && (
         <div className="flex items-center gap-1.5 mb-2">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-emerald-900/40 text-emerald-400 border border-emerald-800/50">
+          <Badge variant="emerald">
             DKIM verified
             {"email_domain" in n && (n as BuyerNegotiationView).email_domain && (
-              <span className="text-emerald-500">
-                {" "}from {(n as BuyerNegotiationView).email_domain}
+              <span className="ml-1 opacity-70">
+                from {(n as BuyerNegotiationView).email_domain}
               </span>
             )}
-          </span>
+          </Badge>
         </div>
       )}
 
@@ -114,7 +118,7 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
 
       {/* Accepted: show seller_info to buyer */}
       {status === "accepted" && isBuyer && "seller_info" in n && (n as BuyerNegotiationView).seller_info && (
-        <div className="mt-3 border-t border-zinc-800 pt-3">
+        <div className="mt-3 border-t border-[--color-border] pt-3">
           <p className="text-xs text-zinc-500 mb-1">Seller Information</p>
           <p className="text-sm text-zinc-200 whitespace-pre-wrap">
             {(n as BuyerNegotiationView).seller_info}
@@ -128,10 +132,11 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
           {status === "proposed" && (
             <Button
               size="sm"
+              variant="primary"
               onClick={() => acceptMutation.mutate()}
               disabled={acceptMutation.isPending}
             >
-              {acceptMutation.isPending ? "Accepting…" : "Accept"}
+              {acceptMutation.isPending ? "Accepting..." : "Accept"}
             </Button>
           )}
           {!isTerminal && (
@@ -141,7 +146,7 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
               onClick={() => cancelMutation.mutate()}
               disabled={cancelMutation.isPending}
             >
-              {cancelMutation.isPending ? "Cancelling…" : "Cancel"}
+              {cancelMutation.isPending ? "Cancelling..." : "Cancel"}
             </Button>
           )}
         </div>
@@ -149,7 +154,7 @@ export function NegotiationCard({ negotiation, role, instanceId, events, maxTurn
 
       {/* Seller view: status messages */}
       {isSeller && status === "committed" && (
-        <p className="text-xs text-zinc-500 mt-2">Starting…</p>
+        <p className="text-xs text-zinc-500 mt-2">Starting...</p>
       )}
       {isSeller && status === "proposed" && (
         <p className="text-xs text-zinc-500 mt-2">

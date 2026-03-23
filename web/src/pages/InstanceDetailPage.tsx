@@ -24,8 +24,8 @@ import type {
   PublicNegotiationView,
 } from "@shared/types.js";
 
-const STATUS_VARIANTS: Record<InstanceStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
-  open: "green",
+const STATUS_VARIANTS: Record<InstanceStatus, "teal" | "zinc"> = {
+  open: "teal",
   closed: "zinc",
 };
 
@@ -220,7 +220,7 @@ export default function InstanceDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8">
         <p className="text-zinc-500 text-sm">Loading...</p>
       </div>
     );
@@ -228,7 +228,7 @@ export default function InstanceDetailPage() {
 
   if (isError || !instance) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8">
         <p className="text-red-400 text-sm">Instance not found.</p>
         <Link to="/" className="text-zinc-400 hover:text-zinc-100 text-sm mt-2 inline-block">
           ← Back to instances
@@ -238,35 +238,33 @@ export default function InstanceDetailPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-8">
       <Link to="/" className="text-zinc-500 hover:text-zinc-300 text-sm mb-6 inline-block">
         ← Back to instances
       </Link>
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <Badge variant={STATUS_VARIANTS[instance.status]}>{instance.status}</Badge>
-          <span className="text-xs text-zinc-500">
-            {new Date(instance.created_at).toLocaleString()}
-          </span>
-        </div>
-
-        {/* Core info */}
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs text-zinc-500 mb-1">Requirement</p>
-            <p className="text-sm text-zinc-200">{instance.buyer_requirement}</p>
+        {/* Instance header card */}
+        <div className="bg-[--color-surface-1] border border-[--color-border] rounded-xl p-5">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <Badge variant={STATUS_VARIANTS[instance.status]}>{instance.status}</Badge>
+            <span className="text-xs text-zinc-500">
+              {new Date(instance.created_at).toLocaleString()}
+            </span>
           </div>
-          <div className="flex gap-6">
+          <p className="text-sm text-zinc-200 leading-relaxed mb-4">{instance.buyer_requirement}</p>
+          <div className="flex items-center gap-6">
             <div>
               <p className="text-xs text-zinc-500 mb-1">Max Payment</p>
-              <p className="text-sm text-zinc-200">{instance.max_payment} USDC</p>
+              <p className="text-lg font-mono font-semibold text-zinc-100">
+                {instance.max_payment}
+                <span className="text-xs text-zinc-500 ml-1 font-normal">USDC</span>
+              </p>
             </div>
-          </div>
-          <div>
-            <p className="text-xs text-zinc-500 mb-1">Buyer</p>
-            <p className="text-xs font-mono text-zinc-400">{instance.buyer_address}</p>
+            <div>
+              <p className="text-xs text-zinc-500 mb-1">Buyer</p>
+              <p className="text-xs font-mono text-zinc-400">{instance.buyer_address}</p>
+            </div>
           </div>
         </div>
 
@@ -307,10 +305,12 @@ export default function InstanceDetailPage() {
 
         {/* Negotiations */}
         {negotiations.length > 0 && (
-          <div className="space-y-3 border-t border-zinc-800 pt-6">
-            <h2 className="text-sm font-semibold text-zinc-200">
-              Negotiations ({negotiations.length})
-            </h2>
+          <div className="space-y-3 border-t border-[--color-border] pt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-sm font-semibold text-zinc-200 font-mono">Negotiations</h2>
+              <Badge variant="zinc">{negotiations.length}</Badge>
+            </div>
+            <div className="space-y-3 stagger-children">
             {negotiations.map((n) => (
               <NegotiationCard
                 key={n.id}
@@ -322,6 +322,7 @@ export default function InstanceDetailPage() {
                 address={address}
               />
             ))}
+            </div>
           </div>
         )}
       </div>

@@ -53,7 +53,7 @@ export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSe
     return (
       <div className="flex items-center gap-2 mt-2">
         <Badge variant="zinc">Settled</Badge>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-zinc-500 font-mono">
           {formatUnits(escrow.deposit.amount, 6)} USDC
         </span>
       </div>
@@ -70,7 +70,7 @@ export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSe
 
       return (
         <div className="space-y-2 mt-2">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-zinc-500 font-mono">
             Balance: {balanceFormatted} USDC · Deposit: {askingPrice} USDC
           </p>
           {escrow.error && (
@@ -79,6 +79,7 @@ export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSe
           {needsApproval ? (
             <Button
               size="sm"
+              variant="primary"
               onClick={() => escrow.approve(askingPrice)}
               disabled={escrow.isPending || escrow.isConfirming}
             >
@@ -87,6 +88,7 @@ export function EscrowPanel({ negotiationId, negotiation, address, isBuyer, isSe
           ) : (
             <Button
               size="sm"
+              variant="primary"
               onClick={() => { escrow.reset(); escrow.depositFunds(askingPrice); }}
               disabled={escrow.isPending || escrow.isConfirming}
             >

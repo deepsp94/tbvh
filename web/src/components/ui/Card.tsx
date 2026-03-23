@@ -1,7 +1,7 @@
 export function Card({ className = "", children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`bg-zinc-900 border border-zinc-800 rounded-lg p-4 ${className}`}
+      className={`bg-[--color-surface-1] border border-[--color-border] rounded-xl p-5 transition-all duration-200 ${className}`}
       {...props}
     >
       {children}

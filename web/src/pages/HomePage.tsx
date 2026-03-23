@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../components/ui/Button";
-import { Card, CardHeader, CardContent } from "../components/ui/Card";
+import { Card, CardContent } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { listInstances } from "../lib/api";
+import { relativeTime, shortAddress, formatUsdc } from "../lib/format";
 import type { InstanceStatus, PublicInstanceView } from "@shared/types.js";
 
 const STATUS_FILTERS: Array<{ label: string; value: string | undefined }> = [
@@ -13,14 +14,10 @@ const STATUS_FILTERS: Array<{ label: string; value: string | undefined }> = [
   { label: "Closed", value: "closed" },
 ];
 
-const STATUS_VARIANTS: Record<InstanceStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
-  open: "green",
+const STATUS_VARIANTS: Record<InstanceStatus, "teal" | "zinc"> = {
+  open: "teal",
   closed: "zinc",
 };
-
-function StatusBadge({ status }: { status: InstanceStatus }) {
-  return <Badge variant={STATUS_VARIANTS[status]}>{status}</Badge>;
-}
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -34,20 +31,23 @@ export default function HomePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold">Instances</h1>
-        <Button onClick={() => navigate("/create")}>Create Instance</Button>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-xl font-semibold font-mono">Instances</h1>
+          <p className="text-sm text-zinc-500 mt-1">Active information requests</p>
+        </div>
+        <Button variant="primary" onClick={() => navigate("/create")}>Create Instance</Button>
       </div>
 
-      <div className="flex gap-1 mb-6 border-b border-zinc-800 pb-2">
+      <div className="flex gap-4 mb-6">
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.label}
             onClick={() => setActiveStatus(f.value)}
-            className={`px-3 py-1 text-sm rounded transition-colors ${
+            className={`pb-2 text-sm transition-colors border-b-2 ${
               activeStatus === f.value
-                ? "text-zinc-100 bg-zinc-800"
-                : "text-zinc-400 hover:text-zinc-100"
+                ? "text-zinc-100 border-teal-500"
+                : "text-zinc-500 border-transparent hover:text-zinc-300"
             }`}
           >
             {f.label}
@@ -60,27 +60,29 @@ export default function HomePage() {
       ) : instances.length === 0 ? (
         <p className="text-zinc-500 text-sm">No instances yet</p>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-3 stagger-children">
           {instances.map((instance: PublicInstanceView) => (
             <Link key={instance.id} to={`/instances/${instance.id}`} className="block">
-              <Card className="hover:border-zinc-600 transition-colors cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <StatusBadge status={instance.status} />
-                    <span className="text-xs text-zinc-500">
-                      {new Date(instance.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </CardHeader>
+              <Card className="hover:border-[--color-border-hover] hover:bg-[--color-surface-2] cursor-pointer">
                 <CardContent>
-                  <p className="text-sm text-zinc-200 mb-2">
-                    {instance.buyer_requirement.length > 120
-                      ? instance.buyer_requirement.slice(0, 120) + "…"
-                      : instance.buyer_requirement}
-                  </p>
-                  <p className="text-xs text-zinc-500">
-                    Max payment: <span className="text-zinc-300">{instance.max_payment} USDC</span>
-                  </p>
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <p className="text-sm text-zinc-200 leading-relaxed">
+                      {instance.buyer_requirement.length > 140
+                        ? instance.buyer_requirement.slice(0, 140) + "..."
+                        : instance.buyer_requirement}
+                    </p>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-lg font-mono font-semibold text-zinc-100">
+                        {formatUsdc(instance.max_payment)}
+                        <span className="text-xs text-zinc-500 ml-1 font-normal">USDC</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-zinc-500">
+                    <Badge variant={STATUS_VARIANTS[instance.status]}>{instance.status}</Badge>
+                    <span className="font-mono">{shortAddress(instance.buyer_address)}</span>
+                    <span>{relativeTime(instance.created_at)}</span>
+                  </div>
                 </CardContent>
               </Card>
             </Link>

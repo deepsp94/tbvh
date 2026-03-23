@@ -4,18 +4,19 @@ import { useAuth } from "../auth/AuthProvider";
 import { Card, CardHeader, CardContent } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { getMyInstances } from "../lib/api";
+import { relativeTime, formatUsdc } from "../lib/format";
 import type { InstanceStatus, NegotiationStatus, PublicInstanceView, SellerNegotiationView } from "@shared/types.js";
 
-const INSTANCE_STATUS_VARIANTS: Record<InstanceStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
-  open: "green",
+const INSTANCE_STATUS_VARIANTS: Record<InstanceStatus, "teal" | "zinc"> = {
+  open: "teal",
   closed: "zinc",
 };
 
-const NEG_STATUS_VARIANTS: Record<NegotiationStatus, "amber" | "blue" | "green" | "red" | "zinc"> = {
+const NEG_STATUS_VARIANTS: Record<NegotiationStatus, "amber" | "blue" | "teal" | "red" | "zinc"> = {
   committed: "amber",
   running: "blue",
   proposed: "amber",
-  accepted: "green",
+  accepted: "teal",
   rejected: "red",
   cancelled: "zinc",
   failed: "red",
@@ -29,7 +30,7 @@ function BuyerInstanceCard({ instance }: { instance: PublicInstanceView }) {
           <div className="flex items-center justify-between">
             <Badge variant={INSTANCE_STATUS_VARIANTS[instance.status]}>{instance.status}</Badge>
             <span className="text-xs text-zinc-500">
-              {new Date(instance.created_at).toLocaleDateString()}
+              {relativeTime(instance.created_at)}
             </span>
           </div>
         </CardHeader>
@@ -40,7 +41,7 @@ function BuyerInstanceCard({ instance }: { instance: PublicInstanceView }) {
               : instance.buyer_requirement}
           </p>
           <p className="text-xs text-zinc-500">
-            Max: <span className="text-zinc-300">{instance.max_payment} USDC</span>
+            Max: <span className="text-zinc-300 font-mono">{formatUsdc(instance.max_payment)} USDC</span>
           </p>
         </CardContent>
       </Card>
@@ -110,10 +111,10 @@ export default function MyInstancesPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-xl font-semibold mb-8">My Instances</h1>
+      <h1 className="text-xl font-semibold font-mono mb-8">My Instances</h1>
       <div className="space-y-10">
         <div>
-          <h2 className="text-base font-semibold mb-4 text-zinc-200">As Buyer</h2>
+          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-500 mb-4">As Buyer</h2>
           {(data?.as_buyer ?? []).length === 0 ? (
             <p className="text-zinc-500 text-sm">No instances as buyer yet</p>
           ) : (
@@ -125,7 +126,7 @@ export default function MyInstancesPage() {
           )}
         </div>
         <div>
-          <h2 className="text-base font-semibold mb-4 text-zinc-200">As Seller</h2>
+          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-500 mb-4">As Seller</h2>
           {(data?.as_seller ?? []).length === 0 ? (
             <p className="text-zinc-500 text-sm">No negotiations as seller yet</p>
           ) : (

@@ -43,7 +43,7 @@ export function UsdcFaucet() {
 
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span className="text-zinc-400">{formatted} USDC</span>
+      <span className="text-zinc-400 font-mono">{formatted} USDC</span>
       <button
         onClick={handleMint}
         disabled={isPending || isConfirming}

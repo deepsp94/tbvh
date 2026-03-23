@@ -9,7 +9,7 @@ import DocsPage from "./pages/DocsPage";
 
 function Layout() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-[--color-surface-0] text-zinc-100">
       <Header />
       <Outlet />
     </div>

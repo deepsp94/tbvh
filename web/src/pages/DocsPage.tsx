@@ -263,14 +263,14 @@ cast send $ESCROW \\
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold text-zinc-100 mb-4 pb-2 border-b border-zinc-800">{title}</h2>
+      <h2 className="text-lg font-semibold text-zinc-100 mb-4 pb-2 border-b border-[--color-border] font-mono">{title}</h2>
       <div className="space-y-4">{children}</div>
     </section>
   );
 }
 
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-semibold text-zinc-200 mt-6">{children}</h3>;
+  return <h3 className="text-sm font-semibold text-zinc-200 mt-6 border-l-2 border-zinc-700 pl-3">{children}</h3>;
 }
 
 function P({ children }: { children: React.ReactNode }) {
@@ -278,23 +278,31 @@ function P({ children }: { children: React.ReactNode }) {
 }
 
 function C({ children }: { children: React.ReactNode }) {
-  return <code className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 text-xs font-mono">{children}</code>;
+  return <code className="px-1.5 py-0.5 rounded bg-[--color-surface-2] text-zinc-300 text-xs font-mono">{children}</code>;
 }
 
 function Code({ children }: { children: React.ReactNode }) {
   return (
-    <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">
+    <pre className="bg-[--color-surface-1] border-l-2 border-teal-500/30 rounded-xl p-4 text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre">
       {children}
     </pre>
   );
 }
 
+const METHOD_COLORS: Record<string, string> = {
+  GET: "text-teal-400",
+  POST: "text-amber-400",
+  DELETE: "text-red-400",
+  PUT: "text-blue-400",
+  PATCH: "text-blue-400",
+};
+
 function EndpointTable({ endpoints }: { endpoints: Array<{ method: string; path: string; auth: string; desc: string }> }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-xl">
       <table className="w-full text-xs text-left mt-2">
         <thead>
-          <tr className="border-b border-zinc-800 text-zinc-500">
+          <tr className="border-b border-[--color-border] text-zinc-500">
             <th className="py-2 pr-3 font-medium">Method</th>
             <th className="py-2 pr-3 font-medium">Path</th>
             <th className="py-2 pr-3 font-medium">Auth</th>
@@ -303,8 +311,8 @@ function EndpointTable({ endpoints }: { endpoints: Array<{ method: string; path:
         </thead>
         <tbody>
           {endpoints.map((e, i) => (
-            <tr key={i} className="border-b border-zinc-800/50">
-              <td className="py-2 pr-3 font-mono text-blue-400">{e.method}</td>
+            <tr key={i} className={`border-b border-[--color-border]/50 ${i % 2 === 0 ? "bg-[--color-surface-1]" : ""}`}>
+              <td className={`py-2 pr-3 font-mono ${METHOD_COLORS[e.method] ?? "text-zinc-400"}`}>{e.method}</td>
               <td className="py-2 pr-3 font-mono text-zinc-300">{e.path}</td>
               <td className="py-2 pr-3 text-zinc-500">{e.auth}</td>
               <td className="py-2 text-zinc-400">{e.desc}</td>
