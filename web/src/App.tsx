@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { Header } from "./Header";
+import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 import CreateInstancePage from "./pages/CreateInstancePage";
 import InstanceDetailPage from "./pages/InstanceDetailPage";
@@ -20,7 +21,8 @@ const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
-      { path: "/", element: <HomePage /> },
+      { path: "/", element: <LandingPage /> },
+      { path: "/requests", element: <HomePage /> },
       { path: "/create", element: <CreateInstancePage /> },
       { path: "/instances/:id", element: <InstanceDetailPage /> },
       { path: "/mine", element: <MyInstancesPage /> },

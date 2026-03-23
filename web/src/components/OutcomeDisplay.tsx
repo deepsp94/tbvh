@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Badge } from "./ui/Badge";
 import { TeeBadge } from "./TeeBadge";
 import { formatUsdc } from "../lib/format";
 import type { NegotiationStatus } from "@shared/types.js";
@@ -13,11 +12,13 @@ interface Props {
 }
 
 export function OutcomeDisplay({ status, askingPrice, negotiationId, teeAttested, outcomeSignature }: Props) {
+  // Status badge is already shown in the NegotiationCard header.
+  // This component only renders additional info (price, TEE badge, verify link).
+
   if (status === "accepted") {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <Badge variant="teal">Accepted</Badge>
           {askingPrice != null && (
             <span className="text-sm font-mono font-medium text-zinc-200">
               {formatUsdc(askingPrice)} <span className="text-zinc-500">USDC</span>
@@ -42,7 +43,6 @@ export function OutcomeDisplay({ status, askingPrice, negotiationId, teeAttested
   if (status === "proposed") {
     return (
       <div className="flex items-center gap-3">
-        <Badge variant="amber">Proposed</Badge>
         {askingPrice != null && (
           <span className="text-sm font-mono font-medium text-zinc-200">
             {formatUsdc(askingPrice)} <span className="text-zinc-500">USDC</span>
@@ -52,17 +52,6 @@ export function OutcomeDisplay({ status, askingPrice, negotiationId, teeAttested
     );
   }
 
-  if (status === "rejected") {
-    return <Badge variant="red">Rejected</Badge>;
-  }
-
-  if (status === "cancelled") {
-    return <Badge variant="zinc">Cancelled</Badge>;
-  }
-
-  if (status === "failed") {
-    return <Badge variant="red">Failed</Badge>;
-  }
-
+  // rejected/cancelled/failed — card header badge is sufficient
   return null;
 }

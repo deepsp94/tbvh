@@ -33,10 +33,10 @@ export default function HomePage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-semibold font-mono">Instances</h1>
+          <h1 className="text-xl font-semibold font-mono">Requests</h1>
           <p className="text-sm text-zinc-500 mt-1">Active information requests</p>
         </div>
-        <Button variant="primary" onClick={() => navigate("/create")}>Create Instance</Button>
+        <Button variant="primary" onClick={() => navigate("/create")}>New Request</Button>
       </div>
 
       <div className="flex gap-4 mb-6">
@@ -58,7 +58,7 @@ export default function HomePage() {
       {isLoading ? (
         <p className="text-zinc-500 text-sm">Loading...</p>
       ) : instances.length === 0 ? (
-        <p className="text-zinc-500 text-sm">No instances yet</p>
+        <p className="text-zinc-500 text-sm">No requests yet</p>
       ) : (
         <div className="grid gap-3 stagger-children">
           {instances.map((instance: PublicInstanceView) => (

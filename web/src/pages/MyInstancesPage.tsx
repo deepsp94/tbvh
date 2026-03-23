@@ -96,7 +96,7 @@ export default function MyInstancesPage() {
   if (!isAuthenticated) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <p className="text-zinc-400">Sign in to view your instances.</p>
+        <p className="text-zinc-400">Sign in to view your requests.</p>
       </div>
     );
   }
@@ -111,12 +111,12 @@ export default function MyInstancesPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-xl font-semibold font-mono mb-8">My Instances</h1>
+      <h1 className="text-xl font-semibold font-mono mb-8">My Requests</h1>
       <div className="space-y-10">
         <div>
-          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-500 mb-4">As Buyer</h2>
+          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-500 mb-4">Buying</h2>
           {(data?.as_buyer ?? []).length === 0 ? (
-            <p className="text-zinc-500 text-sm">No instances as buyer yet</p>
+            <p className="text-zinc-500 text-sm">No requests yet</p>
           ) : (
             <div className="grid gap-3">
               {data!.as_buyer.map((i) => (
@@ -126,9 +126,9 @@ export default function MyInstancesPage() {
           )}
         </div>
         <div>
-          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-500 mb-4">As Seller</h2>
+          <h2 className="text-xs font-mono font-medium uppercase tracking-wider text-zinc-500 mb-4">Selling</h2>
           {(data?.as_seller ?? []).length === 0 ? (
-            <p className="text-zinc-500 text-sm">No negotiations as seller yet</p>
+            <p className="text-zinc-500 text-sm">No negotiations yet</p>
           ) : (
             <div className="grid gap-3">
               {data!.as_seller.map((n) => (

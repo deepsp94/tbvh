@@ -55,17 +55,17 @@ SIGNATURE=$(cast wallet sign --private-key $PRIVATE_KEY "$MESSAGE")`}</Code>
 
         {/* API Reference */}
         <Section title="API Reference">
-          <H3>Instances</H3>
+          <H3>Requests</H3>
           <EndpointTable endpoints={[
-            { method: "GET", path: "/instances", auth: "No", desc: "List all instances. Filter with ?status=open|closed" },
-            { method: "GET", path: "/instances/:id", auth: "No", desc: "Get instance details" },
-            { method: "POST", path: "/instances", auth: "Yes", desc: "Create instance (buyer)" },
-            { method: "POST", path: "/instances/:id/close", auth: "Yes", desc: "Close instance (buyer). No new sellers can commit." },
-            { method: "DELETE", path: "/instances/:id", auth: "Yes", desc: "Delete instance + all negotiations (buyer)" },
-            { method: "GET", path: "/instances/mine", auth: "Yes", desc: "List your instances (as buyer and seller)" },
+            { method: "GET", path: "/instances", auth: "No", desc: "List all requests. Filter with ?status=open|closed" },
+            { method: "GET", path: "/instances/:id", auth: "No", desc: "Get request details" },
+            { method: "POST", path: "/instances", auth: "Yes", desc: "Create request (buyer)" },
+            { method: "POST", path: "/instances/:id/close", auth: "Yes", desc: "Close request (buyer). No new sellers can commit." },
+            { method: "DELETE", path: "/instances/:id", auth: "Yes", desc: "Delete request + all negotiations (buyer)" },
+            { method: "GET", path: "/instances/mine", auth: "Yes", desc: "List your requests (as buyer and seller)" },
           ]} />
 
-          <H3>Create Instance</H3>
+          <H3>Create Request</H3>
           <Code>{`curl -X POST $API/instances \\
   -H "Authorization: Bearer $JWT" \\
   -H "Content-Type: application/json" \\

@@ -214,7 +214,7 @@ export default function InstanceDetailPage() {
     mutationFn: () => deleteInstance(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["instances"] });
-      navigate("/");
+      navigate("/requests");
     },
   });
 
@@ -230,8 +230,8 @@ export default function InstanceDetailPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 py-8">
         <p className="text-red-400 text-sm">Instance not found.</p>
-        <Link to="/" className="text-zinc-400 hover:text-zinc-100 text-sm mt-2 inline-block">
-          ← Back to instances
+        <Link to="/requests" className="text-zinc-400 hover:text-zinc-100 text-sm mt-2 inline-block">
+          ← Back to requests
         </Link>
       </div>
     );
@@ -239,8 +239,8 @@ export default function InstanceDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <Link to="/" className="text-zinc-500 hover:text-zinc-300 text-sm mb-6 inline-block">
-        ← Back to instances
+      <Link to="/requests" className="text-zinc-500 hover:text-zinc-300 text-sm mb-6 inline-block">
+        ← Back to requests
       </Link>
 
       <div className="space-y-6">
@@ -271,22 +271,22 @@ export default function InstanceDetailPage() {
         {/* Buyer actions */}
         {isBuyer && instance.status === "open" && (
           <div className="flex gap-3">
-            <span title="Stop accepting new sellers. Existing negotiations continue.">
+            <span title="Stop accepting new sellers. Existing negotiations continue to completion.">
               <Button
                 variant="ghost"
                 onClick={() => closeMutation.mutate()}
                 disabled={closeMutation.isPending}
               >
-                {closeMutation.isPending ? "Closing…" : "Close Instance"}
+                {closeMutation.isPending ? "Closing…" : "Close Request"}
               </Button>
             </span>
-            <span title="Permanently delete this instance and all its negotiations.">
+            <span title="Permanently delete this request and all its negotiations.">
               <Button
                 variant="ghost"
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? "Deleting…" : "Delete Instance"}
+                {deleteMutation.isPending ? "Deleting…" : "Delete Request"}
               </Button>
             </span>
           </div>

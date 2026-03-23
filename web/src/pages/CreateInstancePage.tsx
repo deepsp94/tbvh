@@ -24,14 +24,14 @@ export default function CreateInstancePage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["instances"] });
-      navigate("/");
+      navigate("/requests");
     },
   });
 
   if (!isAuthenticated) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <p className="text-zinc-400">Sign in to create an instance.</p>
+        <p className="text-zinc-400">Sign in to create a request.</p>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function CreateInstancePage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <h1 className="text-xl font-semibold mb-6">Create Instance</h1>
+      <h1 className="text-xl font-semibold font-mono mb-6">New Request</h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1.5">
@@ -85,7 +85,7 @@ export default function CreateInstancePage() {
           <Button type="submit" disabled={mutation.isPending}>
             {mutation.isPending ? "Creating…" : "Create"}
           </Button>
-          <Button type="button" variant="ghost" onClick={() => navigate("/")}>
+          <Button type="button" variant="ghost" onClick={() => navigate("/requests")}>
             Cancel
           </Button>
         </div>

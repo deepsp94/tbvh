@@ -15,6 +15,12 @@ export function Header() {
       </Link>
       <div className="flex items-center gap-3">
         <Link
+          to="/requests"
+          className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-100 transition-colors"
+        >
+          Browse
+        </Link>
+        <Link
           to="/docs"
           className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-100 transition-colors"
         >
@@ -25,7 +31,7 @@ export function Header() {
             to="/mine"
             className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-100 transition-colors"
           >
-            My Instances
+            My Requests
           </Link>
         )}
         <UsdcFaucet />
