@@ -116,6 +116,10 @@ The escrow contract holds USDC deposits keyed by a `bytes32` identifier (the kec
 
 A standard ERC-20 with 6 decimals and a public `mint(address, amount)` function. Used for testnet only — in production this would be replaced with the real USDC contract address.
 
+## CLI
+
+Everything on TBVH can be done without the frontend. The [tbvh-cli](https://github.com/deepsp94/tbvh-cli) repo provides bash scripts for the full flow: authentication, creating requests, committing as a seller, escrow operations, and watching negotiations in real time. Requires `curl`, `jq`, and `cast` (Foundry).
+
 ## Development
 
 The backend and frontend have separate `package.json` files. The backend lives at the repo root; the frontend is in `web/`. They share TypeScript types via `shared/`, which is aliased as `@shared` in both tsconfigs.
